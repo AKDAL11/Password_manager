@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Passwords_maneger",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
