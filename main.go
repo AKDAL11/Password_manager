@@ -11,6 +11,9 @@ import (
 
 func main() {
 	utils.InitKey() 
+	cryptoSvc := utils.NewCryptoService(utils.EncryptionKey)
+    handlers.InitCryptoService(cryptoSvc)
+
 	// Инициализация БД
 	database, err := db.InitDB("./passwords.db")
 	if err != nil {
