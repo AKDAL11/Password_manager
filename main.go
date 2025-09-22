@@ -6,9 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"password-manager/db"
 	"password-manager/handlers"
+	"password-manager/utils"
 )
 
 func main() {
+	utils.InitKey() 
 	// Инициализация БД
 	database, err := db.InitDB("./passwords.db")
 	if err != nil {

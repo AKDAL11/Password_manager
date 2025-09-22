@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"password-manager/db"
 	"password-manager/models"
 	"password-manager/utils"
+	"time"
 
 	"github.com/labstack/echo/v4"
 )
@@ -50,20 +52,40 @@ func CreatePassword(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid body"})
 	}
 
-	res, err := db.DB.Exec("INSERT INTO passwords (service, username, link, password) VALUES (?, ?, ?, ?)",
-		p.Service, p.Username, p.Link, p.Password)
+	// шифруем пароль перед записью
+	encryptedPass, err := utils.EncryptAES(p.Password)
+	if err != nil {
+		c.Logger().Error("Encrypt error:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "encryption failed"})
+	}
+
+	// записываем в БД
+	res, err := db.DB.Exec(
+		"INSERT INTO passwords (service, username, link, password) VALUES (?, ?, ?, ?)",
+		p.Service, p.Username, p.Link, encryptedPass,
+	)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
+	// получаем ID и дату создания
 	lastID, _ := res.LastInsertId()
-	p.ID = int(lastID)
-	err = db.DB.QueryRow("SELECT created_at FROM passwords WHERE id = ?", p.ID).Scan(&p.CreatedAt)
+	var createdAt string
+	err = db.DB.QueryRow("SELECT created_at FROM passwords WHERE id = ?", lastID).Scan(&createdAt)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusCreated, p)
+	// возвращаем безопасный объект (без пароля)
+	resp := models.PasswordListItem{
+		ID:        int(lastID),
+		Service:   p.Service,
+		Username:  p.Username,
+		Link:      p.Link,
+		CreatedAt: createdAt,
+	}
+
+	return c.JSON(http.StatusCreated, resp)
 }
 
 // обновление пароля
@@ -74,8 +96,14 @@ func UpdatePassword(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid body"})
 	}
 
-	_, err := db.DB.Exec("UPDATE passwords SET service = ?, username = ?, link = ?, password = ? WHERE id = ?",
-		p.Service, p.Username, p.Link, p.Password, id)
+	// шифруем новый пароль
+	encryptedPass, err := utils.EncryptAES(p.Password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "encryption failed"})
+	}
+
+	_, err = db.DB.Exec("UPDATE passwords SET service = ?, username = ?, link = ?, password = ? WHERE id = ?",
+		p.Service, p.Username, p.Link, encryptedPass, id)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
@@ -93,21 +121,39 @@ func DeletePassword(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-// копирование пароля в буфер обмена
+// копирует пароль в буфер обмена и очищает через 15 секунд
 func CopyPassword(c echo.Context) error {
 	id := c.Param("id")
-	var p models.Password
-	err := db.DB.QueryRow("SELECT password FROM passwords WHERE id = ?", id).Scan(&p.Password)
+	var encrypted string
+	err := db.DB.QueryRow("SELECT password FROM passwords WHERE id = ?", id).Scan(&encrypted)
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
+		if err == sql.ErrNoRows {
 			return c.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	if err := utils.CopyToClipboard(p.Password); err != nil {
+	// расшифровываем пароль
+	password, err := utils.DecryptAES(encrypted)
+	if err != nil {
+		c.Logger().Error("Decrypt error:", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "decryption failed"})
+	}
+
+	// копируем в буфер
+	if err := utils.CopyToClipboard(password); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to copy to clipboard"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"status": "Password copied to clipboard"})
+	// через 10 секунд очищаем буфер
+	go func() {
+		time.Sleep(10 * time.Second)
+		if err := utils.CopyToClipboard(""); err != nil {
+			c.Logger().Error("Failed to clear clipboard:", err)
+		}
+	}()
+
+	return c.JSON(http.StatusOK, map[string]string{"status": "Password copied to clipboard. Will be cleared in 10 seconds."})
 }
+
+
