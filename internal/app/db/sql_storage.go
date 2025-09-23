@@ -1,0 +1,90 @@
+// sql_storage.go
+
+package db
+
+import (
+    "database/sql"
+    "password-manager/internal/app/model"
+)
+
+type SQLStorage struct {
+    DB *sql.DB
+}
+
+func NewSQLStorage(db *sql.DB) Storage {
+    return &SQLStorage{DB: db}
+}
+
+// Создание новой записи
+func (s *SQLStorage) CreatePassword(p model.Password) (int64, string, error) {
+    res, err := s.DB.Exec(
+        "INSERT INTO passwords (service, username, link, password) VALUES (?, ?, ?, ?)",
+        p.Service, p.Username, p.Link, p.Password,
+    )
+    if err != nil {
+        return 0, "", err
+    }
+    lastID, _ := res.LastInsertId()
+
+    var createdAt string
+    err = s.DB.QueryRow("SELECT created_at FROM passwords WHERE id = ?", lastID).Scan(&createdAt)
+    if err != nil {
+        return 0, "", err
+    }
+
+    return lastID, createdAt, nil
+}
+
+// Получение всех записей без пароля
+func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
+    rows, err := s.DB.Query("SELECT id, service, username, link, created_at FROM passwords")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var list []model.PasswordListItem
+    for rows.Next() {
+        var item model.PasswordListItem
+        if err := rows.Scan(&item.ID, &item.Service, &item.Username, &item.Link, &item.CreatedAt); err != nil {
+            return nil, err
+        }
+        list = append(list, item)
+    }
+    return list, nil
+}
+
+// Получение одной записи без пароля
+func (s *SQLStorage) GetPasswordByID(id string) (model.PasswordListItem, error) {
+    var p model.PasswordListItem
+    err := s.DB.QueryRow("SELECT id, service, username, link, created_at FROM passwords WHERE id = ?", id).
+        Scan(&p.ID, &p.Service, &p.Username, &p.Link, &p.CreatedAt)
+    return p, err
+}
+
+// Получение зашифрованного пароля
+func (s *SQLStorage) GetEncryptedPassword(id string) (string, error) {
+    var encrypted string
+    err := s.DB.QueryRow("SELECT password FROM passwords WHERE id = ?", id).Scan(&encrypted)
+    return encrypted, err
+}
+
+// Обновление записи
+func (s *SQLStorage) UpdatePassword(id string, p model.Password) error {
+    _, err := s.DB.Exec(
+        "UPDATE passwords SET service = ?, username = ?, link = ?, password = ? WHERE id = ?",
+        p.Service, p.Username, p.Link, p.Password, id,
+    )
+    return err
+}
+
+// Удаление записи
+func (s *SQLStorage) DeletePassword(id string) error {
+    _, err := s.DB.Exec("DELETE FROM passwords WHERE id = ?", id)
+    return err
+}
+
+// Закрытие соединения
+func (s *SQLStorage) Close() error {
+    return s.DB.Close()
+}

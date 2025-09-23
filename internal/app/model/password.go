@@ -1,4 +1,4 @@
-package models
+package model
 
 // Полная структура пароля (для создания/обновления)
 type Password struct {
