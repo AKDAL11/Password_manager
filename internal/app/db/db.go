@@ -20,6 +20,7 @@ func InitDB(path string) (Storage, error) {
         username TEXT NOT NULL,
         link TEXT NOT NULL,
         password TEXT NOT NULL,
+        category TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`)
     if err != nil {

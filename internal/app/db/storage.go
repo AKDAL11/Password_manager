@@ -11,5 +11,6 @@ type Storage interface {
     UpdatePassword(id string, p model.Password) error
     DeletePassword(id string) error
     GetEncryptedPassword(id string) (string, error)
+    GetFilteredPasswords(service, username, category string) ([]model.PasswordListItem, error)
     Close() error
 }

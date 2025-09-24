@@ -22,6 +22,7 @@ func RegisterRoutes(e *echo.Echo, appInstance *app.App) {
 
     e.GET("/passwords", h.GetPasswords)
     e.GET("/passwords/:id", h.GetPassword)
+    e.GET("/passwords", h.GetFilteredPasswords)
     e.POST("/passwords", h.CreatePassword)
     e.PUT("/passwords/:id", h.UpdatePassword)
     e.DELETE("/passwords/:id", h.DeletePassword)
@@ -71,6 +72,7 @@ func (h *Handler) CreatePassword(c echo.Context) error {
         Service:   p.Service,
         Username:  p.Username,
         Link:      p.Link,
+        Category:  p.Category,
         CreatedAt: createdAt,
     }
 
@@ -133,4 +135,17 @@ func (h *Handler) DeletePassword(c echo.Context) error {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
     }
     return c.NoContent(http.StatusNoContent)
+}
+
+// filter
+func (h *Handler) GetFilteredPasswords(c echo.Context) error {
+    service := c.QueryParam("service")
+    username := c.QueryParam("username")
+    category := c.QueryParam("category")
+
+    list, err := h.App.DB.GetFilteredPasswords(service, username, category)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+    }
+    return c.JSON(http.StatusOK, list)
 }
