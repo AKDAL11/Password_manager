@@ -8,6 +8,7 @@ import (
     "password-manager/internal/app/model"
     "password-manager/pkg/utils"
     "time"
+    "github.com/wagslane/go-password-validator"
 
     "github.com/labstack/echo/v4"
 )
@@ -48,11 +49,21 @@ func (h *Handler) GetPassword(c echo.Context) error {
     return c.JSON(http.StatusOK, p)
 }
 
+const minEntropy = 60 // рекомендуемый минимум
 // создание новой записи
 func (h *Handler) CreatePassword(c echo.Context) error {
     var p model.Password
     if err := c.Bind(&p); err != nil {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid body"})
+    }
+
+    // Оценка надёжности пароля
+    err := passwordvalidator.Validate(p.Password, minEntropy)
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]string{
+            "error":  "Пароль слишком слабый",
+            "reason": err.Error(),
+        })
     }
 
     encryptedPass, err := h.App.Crypto.Encrypt(p.Password)
@@ -96,7 +107,7 @@ func (h *Handler) UpdatePassword(c echo.Context) error {
     if err := h.App.DB.UpdatePassword(id, p); err != nil {
         return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
     }
-
+    
     return c.JSON(http.StatusOK, map[string]string{"status": "Updated successfully"})
 }
 
