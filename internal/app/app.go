@@ -1,5 +1,7 @@
-package app
 //app.go
+
+package app
+
 import (
     "log"
     "password-manager/internal/app/db"
@@ -14,7 +16,7 @@ type App struct {
     Logger echo.Logger
 }
 
-// InitApp загружает ключ, инициализирует хранилище и crypto-сервис
+// InitApp loads the encryption key, initializes the storage and crypto service
 func InitApp(e *echo.Echo) *App {
     utils.InitKey()
     cryptoSvc := utils.NewCryptoService(utils.EncryptionKey)
@@ -30,3 +32,4 @@ func InitApp(e *echo.Echo) *App {
         Logger: e.Logger,
     }
 }
+

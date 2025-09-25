@@ -1,0 +1,24 @@
+meta {
+  name: Generate_passwprd
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8080/generate-password?length=16&upper=true&lower=true&digits=true&symbols=true&exclude=O0l1
+  body: none
+  auth: inherit
+}
+
+params:query {
+  length: 16
+  upper: true
+  lower: true
+  digits: true
+  symbols: true
+  exclude: O0l1
+}
+
+settings {
+  encodeUrl: true
+}

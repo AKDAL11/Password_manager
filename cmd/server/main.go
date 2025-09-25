@@ -15,33 +15,33 @@ import (
 )
 
 func main() {
-    // Загружаем переменные окружения из .env
+    // Load environment variables from .env
     if err := godotenv.Load(); err != nil {
-        log.Fatal("Ошибка загрузки .env файла")
+        log.Fatal("Failed to load .env file")
     }
 
-    // Проверяем наличие ключа шифрования
+    // Check if encryption key is set
     if os.Getenv("ENCRYPTION_KEY") == "" {
-        log.Fatal("ENCRYPTION_KEY не задан! Добавьте его в .env")
+        log.Fatal("ENCRYPTION_KEY is not set! Please add it to your .env file")
     }
 
-    // Проверяем наличие мастер-пароля
+    // Check if master password is set
     if os.Getenv("MASTER_PASSWORD") == "" {
-        log.Fatal("MASTER_PASSWORD не задан! Добавьте его в .env")
+        log.Fatal("MASTER_PASSWORD is not set! Please add it to your .env file")
     }
 
-    // Запрос мастер-пароля
-    fmt.Print("Введите мастер-пароль: ")
+    // Prompt for master password
+    fmt.Print("Enter master password: ")
     input, _ := bufio.NewReader(os.Stdin).ReadString('\n')
     input = strings.TrimSpace(input)
 
     if input != os.Getenv("MASTER_PASSWORD") {
-        log.Fatal("Неверный мастер-пароль")
+        log.Fatal("Incorrect master password")
     }
 
     e := echo.New()
 
-    // Middleware логирования
+    // Logging middleware
     e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
         return func(c echo.Context) error {
             c.Logger().Infof("REQUEST: %s %s", c.Request().Method, c.Request().URL)
@@ -49,13 +49,13 @@ func main() {
         }
     })
 
-    // Инициализация приложения
+    // Initialize application
     appInstance := app.InitApp(e)
     defer appInstance.DB.Close()
 
-    // Регистрируем маршруты
+    // Register routes
     endpoint.RegisterRoutes(e, appInstance)
 
-    log.Println("Сервер запущен на :8080")
+    log.Println("Server started on :8080")
     e.Logger.Fatal(e.Start(":8080"))
 }

@@ -1,4 +1,5 @@
 // db.go
+
 package db
 
 import (
@@ -7,7 +8,7 @@ import (
     _ "github.com/mattn/go-sqlite3"
 )
 
-// InitDB открывает SQLite, создаёт таблицу и возвращает реализацию Storage
+// InitDB opens SQLite, creates the table if it doesn't exist, and returns a Storage implementation
 func InitDB(path string) (Storage, error) {
     conn, err := sql.Open("sqlite3", path)
     if err != nil {

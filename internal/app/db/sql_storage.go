@@ -15,7 +15,7 @@ func NewSQLStorage(db *sql.DB) Storage {
     return &SQLStorage{DB: db}
 }
 
-// Создание новой записи
+// Create a new password entry
 func (s *SQLStorage) CreatePassword(p model.Password) (int64, string, error) {
     res, err := s.DB.Exec(
         "INSERT INTO passwords (service, username, link, password, category) VALUES (?, ?, ?, ?, ?)",
@@ -35,7 +35,7 @@ func (s *SQLStorage) CreatePassword(p model.Password) (int64, string, error) {
     return lastID, createdAt, nil
 }
 
-// Получение всех записей без пароля
+// Retrieve all entries without passwords
 func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
     rows, err := s.DB.Query("SELECT id, service, username, link, created_at FROM passwords")
     if err != nil {
@@ -54,7 +54,7 @@ func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
     return list, nil
 }
 
-// Получение одной записи без пароля
+// Retrieve a single entry without password
 func (s *SQLStorage) GetPasswordByID(id string) (model.PasswordListItem, error) {
     var p model.PasswordListItem
     err := s.DB.QueryRow("SELECT id, service, username, link, created_at FROM passwords WHERE id = ?", id).
@@ -62,14 +62,14 @@ func (s *SQLStorage) GetPasswordByID(id string) (model.PasswordListItem, error) 
     return p, err
 }
 
-// Получение зашифрованного пароля
+// Retrieve encrypted password
 func (s *SQLStorage) GetEncryptedPassword(id string) (string, error) {
     var encrypted string
     err := s.DB.QueryRow("SELECT password FROM passwords WHERE id = ?", id).Scan(&encrypted)
     return encrypted, err
 }
 
-// Обновление записи
+// Update an existing password entry
 func (s *SQLStorage) UpdatePassword(id string, p model.Password) error {
     _, err := s.DB.Exec(
         "UPDATE passwords SET service = ?, username = ?, link = ?, password = ?, category = ? WHERE id = ?",
@@ -78,18 +78,18 @@ func (s *SQLStorage) UpdatePassword(id string, p model.Password) error {
     return err
 }
 
-// Удаление записи
+// Delete a password entry
 func (s *SQLStorage) DeletePassword(id string) error {
     _, err := s.DB.Exec("DELETE FROM passwords WHERE id = ?", id)
     return err
 }
 
-// Закрытие соединения
+// Close the database connection
 func (s *SQLStorage) Close() error {
     return s.DB.Close()
 }
 
-// Получение записей с фильтрами по service, username и category
+// Retrieve entries filtered by service, username, and category
 func (s *SQLStorage) GetFilteredPasswords(service, username, category string) ([]model.PasswordListItem, error) {
     query := "SELECT id, service, username, link, category, created_at FROM passwords WHERE 1=1"
     args := []interface{}{}
