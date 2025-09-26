@@ -19,4 +19,5 @@ type PasswordListItem struct {
     Link      string `json:"link"`
     Category  string `json:"category"`
     CreatedAt string `json:"created_at"`
+    Password  string `json:"password"`
 }
