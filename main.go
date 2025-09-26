@@ -47,5 +47,6 @@ func main() {
         submit,
     ))
     w.Resize(fyne.NewSize(300, 150))
+    w.CenterOnScreen()
     w.ShowAndRun()
 }

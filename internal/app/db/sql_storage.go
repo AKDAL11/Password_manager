@@ -5,6 +5,7 @@ package db
 import (
     "database/sql"
     "password-manager/internal/app/model"
+    "time"
 )
 
 type SQLStorage struct {
@@ -17,23 +18,20 @@ func NewSQLStorage(db *sql.DB) Storage {
 
 // Create a new password entry
 func (s *SQLStorage) CreatePassword(p model.Password) (int64, string, error) {
+    createdAt := time.Now().Format("2006-01-02 15:04:05")
+
     res, err := s.DB.Exec(
-        "INSERT INTO passwords (service, username, link, password, category) VALUES (?, ?, ?, ?, ?)",
-        p.Service, p.Username, p.Link, p.Password, p.Category,
+        "INSERT INTO passwords (service, username, link, password, category, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        p.Service, p.Username, p.Link, p.Password, p.Category, createdAt,
     )
     if err != nil {
         return 0, "", err
     }
+
     lastID, _ := res.LastInsertId()
-
-    var createdAt string
-    err = s.DB.QueryRow("SELECT created_at FROM passwords WHERE id = ?", lastID).Scan(&createdAt)
-    if err != nil {
-        return 0, "", err
-    }
-
     return lastID, createdAt, nil
 }
+
 
 // Retrieve all entries without passwords
 func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
