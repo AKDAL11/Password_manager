@@ -37,7 +37,7 @@ func (s *SQLStorage) CreatePassword(p model.Password) (int64, string, error) {
 
 // Retrieve all entries without passwords
 func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
-    rows, err := s.DB.Query("SELECT id, service, username, link, created_at FROM passwords")
+    rows, err := s.DB.Query("SELECT id, service, username, link, category, created_at FROM passwords")
     if err != nil {
         return nil, err
     }
@@ -46,13 +46,21 @@ func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
     var list []model.PasswordListItem
     for rows.Next() {
         var item model.PasswordListItem
-        if err := rows.Scan(&item.ID, &item.Service, &item.Username, &item.Link, &item.CreatedAt); err != nil {
+        if err := rows.Scan(
+            &item.ID,
+            &item.Service,
+            &item.Username,
+            &item.Link,
+            &item.Category,
+            &item.CreatedAt,
+        ); err != nil {
             return nil, err
         }
         list = append(list, item)
     }
     return list, nil
 }
+
 
 // Retrieve a single entry without password
 func (s *SQLStorage) GetPasswordByID(id string) (model.PasswordListItem, error) {

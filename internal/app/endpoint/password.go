@@ -1,29 +1,30 @@
-// password.go
 package endpoint
 
 import (
     "net/http"
+    "strconv"
+    "time"
+
     "password-manager/internal/app"
     "password-manager/internal/app/model"
     "password-manager/pkg/utils"
-    "time"
-    "github.com/wagslane/go-password-validator"
-    "strconv"
 
     "github.com/labstack/echo/v4"
+    "github.com/wagslane/go-password-validator"
 )
 
 type Handler struct {
     App *app.App
 }
 
+const minEntropy = 60 // Recommended minimum entropy
+
 // Register routes and inject dependencies
 func RegisterRoutes(e *echo.Echo, appInstance *app.App) {
     h := &Handler{App: appInstance}
 
-    e.GET("/passwords", h.GetPasswords)
-    e.GET("/passwords/:id", h.GetPassword)
     e.GET("/passwords", h.GetFilteredPasswords)
+    e.GET("/passwords/:id", h.GetPassword)
     e.GET("/generate-password", h.GeneratePassword)
     e.POST("/passwords", h.CreatePassword)
     e.PUT("/passwords/:id", h.UpdatePassword)
@@ -31,11 +32,11 @@ func RegisterRoutes(e *echo.Echo, appInstance *app.App) {
     e.POST("/passwords/:id/copy", h.CopyPassword)
 }
 
-// List of entries without passwords
+// Retrieve all entries without passwords
 func (h *Handler) GetPasswords(c echo.Context) error {
     list, err := h.App.DB.GetAllPasswords()
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to retrieve passwords"))
     }
     return c.JSON(http.StatusOK, list)
 }
@@ -45,23 +46,19 @@ func (h *Handler) GetPassword(c echo.Context) error {
     id := c.Param("id")
     p, err := h.App.DB.GetPasswordByID(id)
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to retrieve password"))
     }
     return c.JSON(http.StatusOK, p)
 }
-
-const minEntropy = 60 // Recommended minimum entropy
 
 // Create a new password entry
 func (h *Handler) CreatePassword(c echo.Context) error {
     var p model.Password
     if err := c.Bind(&p); err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid body"})
+        return c.JSON(http.StatusBadRequest, utils.JSONError("Invalid request body"))
     }
 
-    // Evaluate password strength
-    err := passwordvalidator.Validate(p.Password, minEntropy)
-    if err != nil {
+    if err := utils.ValidatePasswordStrength(p.Password, minEntropy); err != nil {
         return c.JSON(http.StatusBadRequest, map[string]string{
             "error":  "Password is too weak",
             "reason": err.Error(),
@@ -71,13 +68,13 @@ func (h *Handler) CreatePassword(c echo.Context) error {
     encryptedPass, err := h.App.Crypto.Encrypt(p.Password)
     if err != nil {
         h.App.Logger.Error("Encrypt error:", err)
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Encryption failed"})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Encryption failed"))
     }
     p.Password = encryptedPass
 
     id, createdAt, err := h.App.DB.CreatePassword(p)
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to save password"))
     }
 
     resp := model.PasswordListItem{
@@ -97,17 +94,17 @@ func (h *Handler) UpdatePassword(c echo.Context) error {
     id := c.Param("id")
     var p model.Password
     if err := c.Bind(&p); err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid body"})
+        return c.JSON(http.StatusBadRequest, utils.JSONError("Invalid request body"))
     }
 
     encryptedPass, err := h.App.Crypto.Encrypt(p.Password)
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Encryption failed"})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Encryption failed"))
     }
     p.Password = encryptedPass
 
     if err := h.App.DB.UpdatePassword(id, p); err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to update password"))
     }
 
     return c.JSON(http.StatusOK, map[string]string{"status": "Updated successfully"})
@@ -118,17 +115,17 @@ func (h *Handler) CopyPassword(c echo.Context) error {
     id := c.Param("id")
     encrypted, err := h.App.DB.GetEncryptedPassword(id)
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to retrieve encrypted password"))
     }
 
     password, err := h.App.Crypto.Decrypt(encrypted)
     if err != nil {
         h.App.Logger.Error("Decrypt error:", err)
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Decryption failed"})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Decryption failed"))
     }
 
     if err := utils.CopyToClipboard(password); err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to copy to clipboard"})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to copy to clipboard"))
     }
 
     go func() {
@@ -145,29 +142,33 @@ func (h *Handler) CopyPassword(c echo.Context) error {
 func (h *Handler) DeletePassword(c echo.Context) error {
     id := c.Param("id")
     if err := h.App.DB.DeletePassword(id); err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to delete password"))
     }
     return c.NoContent(http.StatusNoContent)
 }
 
-// Filter password entries
+// Filter password entries or return all if no filters
 func (h *Handler) GetFilteredPasswords(c echo.Context) error {
     service := c.QueryParam("service")
     username := c.QueryParam("username")
     category := c.QueryParam("category")
 
+    if service == "" && username == "" && category == "" {
+        return h.GetPasswords(c)
+    }
+
     list, err := h.App.DB.GetFilteredPasswords(service, username, category)
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to filter passwords"))
     }
     return c.JSON(http.StatusOK, list)
 }
 
-// Generate a password with custom settings
+// Generate a password with custom settings and return entropy
 func (h *Handler) GeneratePassword(c echo.Context) error {
     length, err := strconv.Atoi(c.QueryParam("length"))
     if err != nil || length <= 0 {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid length"})
+        return c.JSON(http.StatusBadRequest, utils.JSONError("Invalid length"))
     }
 
     exclude := c.QueryParam("exclude")
@@ -178,8 +179,13 @@ func (h *Handler) GeneratePassword(c echo.Context) error {
 
     pass, err := utils.GeneratePassword(length, useUpper, useLower, useDigits, useSymbols, exclude)
     if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+        return c.JSON(http.StatusBadRequest, utils.JSONError(err.Error()))
     }
 
-    return c.JSON(http.StatusOK, map[string]string{"password": pass})
+    entropy := passwordvalidator.GetEntropy(pass)
+
+    return c.JSON(http.StatusOK, map[string]interface{}{
+        "password": pass,
+        "entropy":  entropy,
+    })
 }
