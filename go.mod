@@ -1,6 +1,6 @@
 module password-manager
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.7
 
@@ -11,6 +11,7 @@ require (
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/wagslane/go-password-validator v0.3.0
+	golang.org/x/crypto v0.42.0
 )
 
 require (
@@ -46,10 +47,9 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/image v0.24.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
