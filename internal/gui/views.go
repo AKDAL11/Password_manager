@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/theme"
 )
 
 func ShowMainWindow(a fyne.App, appInstance *app.App) {
@@ -26,9 +27,53 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 	statusLabel := widget.NewLabel("")
 	table, tableContainer := buildPasswordTable(currentList, statusLabel)
 
-	var split *container.Split
-	var toggleBtn *widget.Button
+	var filterDialog dialog.Dialog
 
+	// Кнопка фильтра
+	filterBtn := widget.NewButton("🔍 Show Filters", func() {
+		// Получаем подсказки
+		passwords, _ := appInstance.DB.GetAllPasswords()
+		services, usernames, categories, _ := extractSuggestions(passwords)
+
+		serviceFilter := widget.NewSelectEntry(services)
+		serviceFilter.SetPlaceHolder("Service")
+		serviceFilter.Resize(fyne.NewSize(300, 40))
+
+		usernameFilter := widget.NewSelectEntry(usernames)
+		usernameFilter.SetPlaceHolder("Username")
+		usernameFilter.Resize(fyne.NewSize(300, 40))
+
+		categoryFilter := widget.NewSelectEntry(categories)
+		categoryFilter.SetPlaceHolder("Category")
+		categoryFilter.Resize(fyne.NewSize(300, 40))
+
+		form := widget.NewForm(
+			widget.NewFormItem("Service", serviceFilter),
+			widget.NewFormItem("Username", usernameFilter),
+			widget.NewFormItem("Category", categoryFilter),
+		)
+
+		applyBtn := widget.NewButtonWithIcon("Apply", theme.ConfirmIcon(), func() {
+			filtered, err := appInstance.DB.GetFilteredPasswords(serviceFilter.Text, usernameFilter.Text, categoryFilter.Text)
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+			currentList = filtered
+			table.Length = func() (int, int) { return len(currentList), 7 }
+			table.Refresh()
+			filterDialog.Hide()
+		})
+
+		buttons := container.NewHBox(applyBtn)
+		content := container.NewVBox(form, buttons)
+
+		filterDialog = dialog.NewCustom("Filter Passwords", "Close", content, w)
+		filterDialog.Resize(fyne.NewSize(500, 300))
+		filterDialog.Show()
+	})
+
+	// Кнопка обновления
 	refreshBtn := widget.NewButton("🔄 Refresh", func() {
 		newList, err := appInstance.DB.GetAllPasswords()
 		if err != nil {
@@ -37,93 +82,83 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 		}
 		currentList = newList
 		table.Length = func() (int, int) { return len(currentList), 7 }
-		table.UpdateCell = func(cell widget.TableCellID, o fyne.CanvasObject) {
-			if cell.Row >= len(currentList) || cell.Col >= 7 {
-				return
-			}
-
-			i, j := cell.Row, cell.Col
-			label := o.(*fyne.Container).Objects[0].(*widget.Label)
-			button := o.(*fyne.Container).Objects[1].(*widget.Button)
-
-			label.Hide()
-			button.Hide()
-
-			switch j {
-			case 0:
-				label.SetText(strconv.Itoa(currentList[i].ID))
-				label.Show()
-			case 1:
-				label.SetText(currentList[i].Service)
-				label.Show()
-			case 2:
-				label.SetText(currentList[i].Username)
-				label.Show()
-			case 3:
-				label.SetText(currentList[i].Category)
-				label.Show()
-			case 4:
-				t, err := time.Parse(time.RFC3339, currentList[i].CreatedAt)
-				if err != nil {
-					label.SetText(currentList[i].CreatedAt)
-				} else {
-					label.SetText(t.Local().Format("02 January 2006, 15:04"))
-				}
-				label.Show()
-			case 5:
-				link := currentList[i].Link
-				button.SetText(link)
-				button.OnTapped = func() {
-					utils.CopyToClipboard(link)
-					statusLabel.SetText("Link copied to clipboard")
-					clearStatusLater(statusLabel)
-				}
-				button.Show()
-			case 6:
-				button.SetText("Copy Password")
-				button.OnTapped = func() {
-					utils.CopyToClipboard(currentList[i].Password)
-					statusLabel.SetText("Password copied to clipboard")
-					clearStatusLater(statusLabel)
-				}
-				button.Show()
-			}
-		}
-
 		table.Refresh()
 	})
 
-	sidebarVisible := true
-	toggleBtn = widget.NewButton("⬅️ Collapse", func() {
-		sidebarVisible = !sidebarVisible
-		if sidebarVisible {
-			split.SetOffset(0.25)
-			toggleBtn.SetText("⬅️ Collapse")
-		} else {
-			split.SetOffset(0.0)
-			toggleBtn.SetText("➡️ Expand")
+	// Обновление ячеек таблицы
+	table.UpdateCell = func(cell widget.TableCellID, o fyne.CanvasObject) {
+		if cell.Row >= len(currentList) || cell.Col >= 7 {
+			return
 		}
-	})
 
+		i, j := cell.Row, cell.Col
+		label := o.(*fyne.Container).Objects[0].(*widget.Label)
+		button := o.(*fyne.Container).Objects[1].(*widget.Button)
+
+		label.Hide()
+		button.Hide()
+
+		switch j {
+		case 0:
+			label.SetText(strconv.Itoa(currentList[i].ID))
+			label.Show()
+		case 1:
+			label.SetText(currentList[i].Service)
+			label.Show()
+		case 2:
+			label.SetText(currentList[i].Username)
+			label.Show()
+		case 3:
+			label.SetText(currentList[i].Category)
+			label.Show()
+		case 4:
+			t, err := time.Parse(time.RFC3339, currentList[i].CreatedAt)
+			if err != nil {
+				label.SetText(currentList[i].CreatedAt)
+			} else {
+				label.SetText(t.Local().Format("02 January 2006, 15:04"))
+			}
+			label.Show()
+		case 5:
+			link := currentList[i].Link
+			button.SetText(link)
+			button.OnTapped = func() {
+				utils.CopyToClipboard(link)
+				statusLabel.SetText("Link copied to clipboard")
+				clearStatusLater(statusLabel)
+			}
+			button.Show()
+		case 6:
+			button.SetText("Copy Password")
+			button.OnTapped = func() {
+				utils.CopyToClipboard(currentList[i].Password)
+				statusLabel.SetText("Password copied to clipboard")
+				clearStatusLater(statusLabel)
+			}
+			button.Show()
+		}
+	}
+
+	// Боковая панель
 	sidebar := container.NewVBox(
 		widget.NewLabel("📁 Actions"),
 		widget.NewButton("➕ Add", func() { ShowCreateForm(a, appInstance) }),
-		widget.NewButton("🔍 Filter", func() { ShowFilterWindow(a, appInstance) }),
 		widget.NewButton("✏️ Update", func() { ShowUpdateWindow(a, appInstance) }),
 		widget.NewButton("❌ Delete", func() { ShowDeleteWindow(a, appInstance) }),
 		refreshBtn,
 	)
 
-	sidebarBox := container.NewVBox(toggleBtn, sidebar)
+	sidebarBox := container.NewVBox(sidebar)
 	sidebarBox.Resize(fyne.NewSize(200, 500))
 
+	// Основное содержимое
 	mainContent := container.NewBorder(
-		widget.NewLabel("Your Passwords"),
+		container.NewVBox(widget.NewLabel("Your Passwords"), filterBtn),
 		nil, nil, nil,
 		tableContainer,
 	)
 
-	split = container.NewHSplit(sidebarBox, mainContent)
+	split := container.NewHSplit(sidebarBox, mainContent)
 	split.Offset = 0.25
 
 	w.SetContent(split)
@@ -227,113 +262,113 @@ func clearStatusLater(label *widget.Label) {
 }
 
 func ShowCreateForm(a fyne.App, appInstance *app.App) {
-    w := a.NewWindow("Create Password")
+	w := a.NewWindow("Create Password")
 
-    passwords, _ := appInstance.DB.GetAllPasswords()
-    services, usernames, categories, links := extractSuggestions(passwords)
+	passwords, _ := appInstance.DB.GetAllPasswords()
+	services, usernames, categories, links := extractSuggestions(passwords)
 
-    // Поля ввода
-    service := widget.NewSelectEntry(services)
-    username := widget.NewSelectEntry(usernames)
-    link := widget.NewSelectEntry(links)
-    passwordEntry := widget.NewPasswordEntry()
-    category := widget.NewSelectEntry(categories)
-    statusLabel := widget.NewLabel("")
+	// Поля ввода
+	service := widget.NewSelectEntry(services)
+	username := widget.NewSelectEntry(usernames)
+	link := widget.NewSelectEntry(links)
+	passwordEntry := widget.NewPasswordEntry()
+	category := widget.NewSelectEntry(categories)
+	statusLabel := widget.NewLabel("")
 
-    // Настройки генерации
-    lengthEntry := widget.NewEntry()
-    lengthEntry.SetText("16")
-    lengthEntry.SetPlaceHolder("Length")
+	// Настройки генерации
+	lengthEntry := widget.NewEntry()
+	lengthEntry.SetText("16")
+	lengthEntry.SetPlaceHolder("Length")
 
-    excludeEntry := widget.NewEntry()
-    excludeEntry.SetPlaceHolder("Exclude chars")
+	excludeEntry := widget.NewEntry()
+	excludeEntry.SetPlaceHolder("Exclude chars")
 
-    useUpper := widget.NewCheck("A-Z", nil)
-    useUpper.SetChecked(true)
-    useLower := widget.NewCheck("a-z", nil)
-    useLower.SetChecked(true)
-    useDigits := widget.NewCheck("0-9", nil)
-    useDigits.SetChecked(true)
-    useSymbols := widget.NewCheck("!@#", nil)
-    useSymbols.SetChecked(true)
+	useUpper := widget.NewCheck("A-Z", nil)
+	useUpper.SetChecked(true)
+	useLower := widget.NewCheck("a-z", nil)
+	useLower.SetChecked(true)
+	useDigits := widget.NewCheck("0-9", nil)
+	useDigits.SetChecked(true)
+	useSymbols := widget.NewCheck("!@#", nil)
+	useSymbols.SetChecked(true)
 
-    // Кнопка генерации
-    generateBtn := widget.NewButton("🔁 Generate", func() {
-        length, err := strconv.Atoi(lengthEntry.Text)
-        if err != nil || length <= 0 {
-            statusLabel.SetText("Invalid length")
-            clearStatusLater(statusLabel)
-            return
-        }
-        password, err := utils.GeneratePassword(length, useUpper.Checked, useLower.Checked, useDigits.Checked, useSymbols.Checked, excludeEntry.Text)
-        if err != nil {
-            statusLabel.SetText("Generation error: " + err.Error())
-            clearStatusLater(statusLabel)
-            return
-        }
-        passwordEntry.SetText(password)
-        statusLabel.SetText("Generated password inserted")
-        clearStatusLater(statusLabel)
-    })
+	// Кнопка генерации
+	generateBtn := widget.NewButton("🔁 Generate", func() {
+		length, err := strconv.Atoi(lengthEntry.Text)
+		if err != nil || length <= 0 {
+			statusLabel.SetText("Invalid length")
+			clearStatusLater(statusLabel)
+			return
+		}
+		password, err := utils.GeneratePassword(length, useUpper.Checked, useLower.Checked, useDigits.Checked, useSymbols.Checked, excludeEntry.Text)
+		if err != nil {
+			statusLabel.SetText("Generation error: " + err.Error())
+			clearStatusLater(statusLabel)
+			return
+		}
+		passwordEntry.SetText(password)
+		statusLabel.SetText("Generated password inserted")
+		clearStatusLater(statusLabel)
+	})
 
-    // Сетка генерации
-    passwordRow := container.NewGridWithColumns(2,
-        container.NewVBox(passwordEntry),
-        container.NewVBox(generateBtn),
-    )
+	// Сетка генерации
+	passwordRow := container.NewGridWithColumns(2,
+		container.NewVBox(passwordEntry),
+		container.NewVBox(generateBtn),
+	)
 
-    optionsGrid := container.NewGridWithColumns(2,
-        container.NewVBox(widget.NewLabel("Length"), lengthEntry),
-        container.NewVBox(widget.NewLabel("Exclude"), excludeEntry),
-    )
+	optionsGrid := container.NewGridWithColumns(2,
+		container.NewVBox(widget.NewLabel("Length"), lengthEntry),
+		container.NewVBox(widget.NewLabel("Exclude"), excludeEntry),
+	)
 
-    checkboxGrid := container.NewGridWithColumns(4, useUpper, useLower, useDigits, useSymbols)
+	checkboxGrid := container.NewGridWithColumns(4, useUpper, useLower, useDigits, useSymbols)
 
-    passwordSection := container.NewVBox(
-        passwordRow,
-        optionsGrid,
-        checkboxGrid,
-    )
+	passwordSection := container.NewVBox(
+		passwordRow,
+		optionsGrid,
+		checkboxGrid,
+	)
 
-    // Финальная форма
-    form := widget.NewForm(
-        widget.NewFormItem("Service", service),
-        widget.NewFormItem("Username", username),
-        widget.NewFormItem("Link", link),
-        widget.NewFormItem("Password", passwordSection),
-        widget.NewFormItem("Category", category),
-    )
+	// Финальная форма
+	form := widget.NewForm(
+		widget.NewFormItem("Service", service),
+		widget.NewFormItem("Username", username),
+		widget.NewFormItem("Link", link),
+		widget.NewFormItem("Password", passwordSection),
+		widget.NewFormItem("Category", category),
+	)
 
-    form.OnSubmit = func() {
-        p := model.Password{
-            Service:  service.Text,
-            Username: username.Text,
-            Link:     link.Text,
-            Password: passwordEntry.Text,
-            Category: category.Text,
-        }
-        if err := utils.ValidatePasswordStrength(p.Password, 60); err != nil {
-            dialog.ShowError(err, w)
-            return
-        }
-        encrypted, err := appInstance.Crypto.Encrypt(p.Password)
-        if err != nil {
-            dialog.ShowError(err, w)
-            return
-        }
-        p.Password = encrypted
-        _, _, err = appInstance.DB.CreatePassword(p)
-        if err != nil {
-            dialog.ShowError(err, w)
-            return
-        }
-        w.Close()
-    }
+	form.OnSubmit = func() {
+		p := model.Password{
+			Service:  service.Text,
+			Username: username.Text,
+			Link:     link.Text,
+			Password: passwordEntry.Text,
+			Category: category.Text,
+		}
+		if err := utils.ValidatePasswordStrength(p.Password, 60); err != nil {
+			dialog.ShowError(err, w)
+			return
+		}
+		encrypted, err := appInstance.Crypto.Encrypt(p.Password)
+		if err != nil {
+			dialog.ShowError(err, w)
+			return
+		}
+		p.Password = encrypted
+		_, _, err = appInstance.DB.CreatePassword(p)
+		if err != nil {
+			dialog.ShowError(err, w)
+			return
+		}
+		w.Close()
+	}
 
-    content := container.NewVBox(form, statusLabel)
-    w.SetContent(container.NewPadded(content))
-    w.Resize(fyne.NewSize(520, 420))
-    w.Show()
+	content := container.NewVBox(form, statusLabel)
+	w.SetContent(container.NewPadded(content))
+	w.Resize(fyne.NewSize(520, 420))
+	w.Show()
 }
 
 func ShowFilterWindow(a fyne.App, appInstance *app.App) {
