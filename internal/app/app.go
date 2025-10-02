@@ -2,54 +2,40 @@ package app
 
 import (
     "log"
-    "os"
 
-    "github.com/joho/godotenv"
+    "github.com/labstack/echo/v4"
     "password-manager/internal/app/db"
     "password-manager/pkg/utils"
-    "github.com/labstack/echo/v4"
 )
 
 type App struct {
-    DB                 db.Storage
-    Crypto             *utils.CryptoService
-    Logger             echo.Logger
-    MasterPasswordHash string
+    DB     db.Storage
+    Crypto *utils.CryptoService
+    Logger echo.Logger
 }
 
-// InitApp loads the encryption key, initializes the storage and crypto service
-func InitApp(e *echo.Echo) *App {
-    err := godotenv.Load()
+func InitApp(e *echo.Echo, dbPath string) *App {
+    // Загружаем/генерируем ключ
+    key, err := utils.LoadEncryptionKey(nil)
     if err != nil {
-        log.Fatal("Error loading .env file")
+        log.Fatal("Encryption key error:", err)
     }
+    crypto := utils.NewCryptoService(key)
 
-    master := os.Getenv("MASTER_PASSWORD")
-    if master == "" {
-        log.Fatal("MASTER_PASSWORD not set in .env")
-    }
-
-    hashed, err := utils.HashPassword(master)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    utils.InitKey()
-    cryptoSvc := utils.NewCryptoService(utils.EncryptionKey)
-
-    storage, err := db.InitDB("./passwords.db")
+    // Инициализация БД
+    storage, err := db.InitDB(dbPath, crypto)
     if err != nil {
         log.Fatal(err)
     }
 
     return &App{
-        DB:                 storage,
-        Crypto:             cryptoSvc,
-        Logger:             e.Logger,
-        MasterPasswordHash: string(hashed),
+        DB:     storage,
+        Crypto: crypto,
+        Logger: e.Logger,
     }
 }
 
+// Проверка мастер‑пароля: теперь только через БД
 func (a *App) VerifyMasterPassword(input string) bool {
-    return input == os.Getenv("MASTER_PASSWORD")
+    return a.DB.VerifyMasterPassword(input) == nil
 }

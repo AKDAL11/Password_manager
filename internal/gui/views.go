@@ -33,7 +33,7 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 	// Таймер блокировки
 	var lastActivity time.Time = time.Now()
 	var isLocked bool = false
-	const idleTimeout = 1 * time.Minute
+	const idleTimeout = 2 * time.Minute
 
 	updateActivity := func() {
 		if !isLocked {
@@ -50,7 +50,6 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 				passwordEntry := widget.NewPasswordEntry()
 				passwordEntry.SetPlaceHolder("Enter master password")
 
-				// Оборачиваем поле в контейнер с фиксированной шириной
 				passwordContainer := container.NewVBox(passwordEntry)
 				passwordContainer.Resize(fyne.NewSize(400, 40))
 
@@ -123,12 +122,7 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 			filterDialog.Hide()
 		})
 
-		cancelBtn := widget.NewButtonWithIcon("Cancel", theme.CancelIcon(), func() {
-			updateActivity()
-			filterDialog.Hide()
-		})
-
-		buttons := container.NewHBox(cancelBtn, applyBtn)
+		buttons := container.NewHBox(applyBtn)
 		content := container.NewVBox(form, buttons)
 
 		filterDialog = dialog.NewCustom("Filter Passwords", "Close", content, w)

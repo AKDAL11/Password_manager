@@ -1,15 +1,13 @@
-// db.go
-
+// internal/app/db/db.go
 package db
 
 import (
     "database/sql"
-
     _ "github.com/mattn/go-sqlite3"
+    "password-manager/pkg/utils"
 )
 
-// InitDB opens SQLite, creates the table if it doesn't exist, and returns a Storage implementation
-func InitDB(path string) (Storage, error) {
+func InitDB(path string, crypto *utils.CryptoService) (Storage, error) {
     conn, err := sql.Open("sqlite3", path)
     if err != nil {
         return nil, err
@@ -28,5 +26,14 @@ func InitDB(path string) (Storage, error) {
         return nil, err
     }
 
-    return NewSQLStorage(conn), nil
+    _, err = conn.Exec(`CREATE TABLE IF NOT EXISTS master_password (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL,
+        hash TEXT NOT NULL
+    )`)
+    if err != nil {
+        return nil, err
+    }
+
+    return NewSQLStorage(conn, crypto), nil
 }

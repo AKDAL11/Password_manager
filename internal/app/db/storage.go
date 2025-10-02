@@ -1,5 +1,4 @@
-// storage.go
-
+// internal/app/db/storage.go
 package db
 
 import "password-manager/internal/app/model"
@@ -13,4 +12,9 @@ type Storage interface {
     GetEncryptedPassword(id string) (string, error)
     GetFilteredPasswords(service, username, category string) ([]model.PasswordListItem, error)
     Close() error
+
+    HasMasterPassword() bool
+    SaveMasterPassword(email, plain string) error
+    VerifyMasterPassword(input string) error
+    GetRecoveryEmail() (string, error)
 }
