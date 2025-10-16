@@ -1,0 +1,20 @@
+# Бинарники и сборки
+*.exe
+*.out
+*.test
+bin/
+
+# IDE / редакторы
+.vscode/
+.idea/
+
+# База данных SQLite
+passwords.db
+
+# Go кэш
+/go.sum
+
+
+.env
+vendor
+.apk

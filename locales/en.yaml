@@ -1,0 +1,70 @@
+Password_Manager: { other: "Password Manager" }
+Unlock_Password_Manager: { other: "Unlock Password Manager" }
+Enter_master_password: { other: "Enter master password" }
+invalid_master_password: { other: "Invalid master password" }
+Create_Master_Password: { other: "Create Master Password" }
+Enter_your_email: { other: "Enter your email" }
+Confirm_master_password: { other: "Confirm master password" }
+Save: { other: "Save" }
+Success: { other: "Success" }
+Master_password_saved: { other: "Master password saved" }
+passwords_do_not_match: { other: "Passwords do not match" }
+email_and_password_required: { other: "Email and password are required" }
+First-time_setup: { other: "First-time setup" }
+
+Session_locked: { other: "Session locked due to inactivity" }
+Master_Password: { other: "Master Password" }
+Unlock_Session: { other: "Unlock Session" }
+Unlock: { other: "Unlock" }
+Exit: { other: "Exit" }
+
+Show_Filters: { other: "Show Filters" }
+Service: { other: "Service" }
+Username: { other: "Username" }
+Category: { other: "Category" }
+Apply: { other: "Apply" }
+Filter_Passwords: { other: "Filter Passwords" }
+Close: { other: "Close" }
+Refresh: { other: "Refresh" }
+
+ID: { other: "ID" }
+Created_At: { other: "Created At" }
+Link: { other: "Link" }
+Copy_Password: { other: "Copy Password" }
+Link_copied: { other: "Link copied to clipboard" }
+Password_copied: { other: "Password copied to clipboard" }
+
+Actions: { other: "Actions" }
+Add: { other: "Add" }
+Update: { other: "Update" }
+Delete: { other: "Delete" }
+Your_Passwords: { other: "Your Passwords" }
+
+Create_Password: { other: "Create Password" }
+Password: { other: "Password" }
+Length: { other: "Length" }
+Exclude: { other: "Exclude" }
+Exclude_chars: { other: "Exclude chars" }
+Generate: { other: "Generate" }
+Invalid_length: { other: "Invalid length" }
+Generation_error: { other: "Generation error" }
+Generated_inserted: { other: "Generated password inserted" }
+
+Weak_password: { other: "Weak password" }
+Strong_password: { other: "Strong password" }
+Choose_stronger: { other: "Please choose a stronger password" }
+missing: { other: "missing" }
+length_8: { other: "length ≥ 8" }
+digit: { other: "digit" }
+uppercase: { other: "uppercase" }
+lowercase: { other: "lowercase" }
+symbol: { other: "symbol" }
+
+Update_Password: { other: "Update Password" }
+Updated: { other: "Updated" }
+Password_updated: { other: "Password updated successfully" }
+
+Delete_Password: { other: "Delete Password" }
+Enter_ID_to_delete: { other: "Enter ID to delete" }
+Deleted: { other: "Deleted" }
+Password_deleted: { other: "Password deleted successfully" }

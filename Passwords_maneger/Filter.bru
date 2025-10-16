@@ -1,0 +1,29 @@
+meta {
+  name: Filter
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8080/passwords?category=home
+  body: none
+  auth: inherit
+}
+
+params:query {
+  category: home
+  ~service: GO
+  ~username: ALEX2
+}
+
+body:json {
+  {
+    "service": "YouTube",
+    "username": "ALEX2",
+    "category": "home"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

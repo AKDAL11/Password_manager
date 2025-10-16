@@ -1,0 +1,70 @@
+Password_Manager: { other: "Менеджер паролей" }
+Unlock_Password_Manager: { other: "Разблокировать менеджер паролей" }
+Enter_master_password: { other: "Введите мастер-пароль" }
+invalid_master_password: { other: "Неверный мастер-пароль" }
+Create_Master_Password: { other: "Создать мастер-пароль" }
+Enter_your_email: { other: "Введите ваш email" }
+Confirm_master_password: { other: "Подтвердите мастер-пароль" }
+Save: { other: "Сохранить" }
+Success: { other: "Успех" }
+Master_password_saved: { other: "Мастер-пароль сохранён" }
+passwords_do_not_match: { other: "Пароли не совпадают" }
+email_and_password_required: { other: "Требуются email и пароль" }
+First-time_setup: { other: "Первичная настройка" }
+
+Session_locked: { other: "Сессия заблокирована из-за бездействия" }
+Master_Password: { other: "Мастер-пароль" }
+Unlock_Session: { other: "Разблокировать сессию" }
+Unlock: { other: "Разблокировать" }
+Exit: { other: "Выход" }
+
+Show_Filters: { other: "Показать фильтры" }
+Service: { other: "Сервис" }
+Username: { other: "Имя пользователя" }
+Category: { other: "Категория" }
+Apply: { other: "Применить" }
+Filter_Passwords: { other: "Фильтр паролей" }
+Close: { other: "Закрыть" }
+Refresh: { other: "Обновить" }
+
+ID: { other: "ID" }
+Created_At: { other: "Создано" }
+Link: { other: "Ссылка" }
+Copy_Password: { other: "Копировать пароль" }
+Link_copied: { other: "Ссылка скопирована в буфер обмена" }
+Password_copied: { other: "Пароль скопирован в буфер обмена" }
+
+Actions: { other: "Действия" }
+Add: { other: "Добавить" }
+Update: { other: "Обновить" }
+Delete: { other: "Удалить" }
+Your_Passwords: { other: "Ваши пароли" }
+
+Create_Password: { other: "Создать пароль" }
+Password: { other: "Пароль" }
+Length: { other: "Длина" }
+Exclude: { other: "Исключить" }
+Exclude_chars: { other: "Исключить символы" }
+Generate: { other: "Сгенерировать" }
+Invalid_length: { other: "Некорректная длина" }
+Generation_error: { other: "Ошибка генерации" }
+Generated_inserted: { other: "Сгенерированный пароль вставлен" }
+
+Weak_password: { other: "Слабый пароль" }
+Strong_password: { other: "Надёжный пароль" }
+Choose_stronger: { other: "Пожалуйста, выберите более надёжный пароль" }
+missing: { other: "отсутствует" }
+length_8: { other: "длина ≥ 8" }
+digit: { other: "цифра" }
+uppercase: { other: "прописная буква" }
+lowercase: { other: "строчная буква" }
+symbol: { other: "символ" }
+
+Update_Password: { other: "Обновить пароль" }
+Updated: { other: "Обновлено" }
+Password_updated: { other: "Пароль успешно обновлён" }
+
+Delete_Password: { other: "Удалить пароль" }
+Enter_ID_to_delete: { other: "Введите ID для удаления" }
+Deleted: { other: "Удалено" }
+Password_deleted: { other: "Пароль успешно удалён" }

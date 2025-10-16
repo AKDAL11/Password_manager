@@ -1,0 +1,70 @@
+Password_Manager: { other: "Менеджар пароляў" }
+Unlock_Password_Manager: { other: "Разблакіраваць менеджар пароляў" }
+Enter_master_password: { other: "Увядзіце майстар-пароль" }
+invalid_master_password: { other: "Няправільны майстар-пароль" }
+Create_Master_Password: { other: "Стварыць майстар-пароль" }
+Enter_your_email: { other: "Увядзіце ваш email" }
+Confirm_master_password: { other: "Пацвердзіце майстар-пароль" }
+Save: { other: "Захаваць" }
+Success: { other: "Поспех" }
+Master_password_saved: { other: "Майстар-пароль захаваны" }
+passwords_do_not_match: { other: "Паролі не супадаюць" }
+email_and_password_required: { other: "Патрабуюцца email і пароль" }
+First-time_setup: { other: "Першасная наладка" }
+
+Session_locked: { other: "Сесія заблакіравана праз бяздзейнасць" }
+Master_Password: { other: "Майстар-пароль" }
+Unlock_Session: { other: "Разблакіраваць сесію" }
+Unlock: { other: "Разблакіраваць" }
+Exit: { other: "Выйсці" }
+
+Show_Filters: { other: "Паказаць фільтры" }
+Service: { other: "Сэрвіс" }
+Username: { other: "Імя карыстальніка" }
+Category: { other: "Катэгорыя" }
+Apply: { other: "Ужыць" }
+Filter_Passwords: { other: "Фільтр пароляў" }
+Close: { other: "Закрыць" }
+Refresh: { other: "Абнавіць" }
+
+ID: { other: "ID" }
+Created_At: { other: "Створана" }
+Link: { other: "Спасылка" }
+Copy_Password: { other: "Капіраваць пароль" }
+Link_copied: { other: "Спасылка скапіравана ў буфер абмену" }
+Password_copied: { other: "Пароль скапіраваны ў буфер абмену" }
+
+Actions: { other: "Дзеянні" }
+Add: { other: "Дадаць" }
+Update: { other: "Абнавіць" }
+Delete: { other: "Выдаліць" }
+Your_Passwords: { other: "Вашы паролі" }
+
+Create_Password: { other: "Стварыць пароль" }
+Password: { other: "Пароль" }
+Length: { other: "Даўжыня" }
+Exclude: { other: "Выключыць" }
+Exclude_chars: { other: "Выключыць сімвалы" }
+Generate: { other: "Згенераваць" }
+Invalid_length: { other: "Некарэктная даўжыня" }
+Generation_error: { other: "Памылка генерацыі" }
+Generated_inserted: { other: "Згенераваны пароль устаўлены" }
+
+Weak_password: { other: "Слабы пароль" }
+Strong_password: { other: "Моцны пароль" }
+Choose_stronger: { other: "Калі ласка, абярыце больш моцны пароль" }
+missing: { other: "ня хапае" }
+length_8: { other: "даўжыня ≥ 8" }
+digit: { other: "лічба" }
+uppercase: { other: "вялікая літара" }
+lowercase: { other: "малая літара" }
+symbol: { other: "сімвал" }
+
+Update_Password: { other: "Абнавіць пароль" }
+Updated: { other: "Абноўлена" }
+Password_updated: { other: "Пароль паспяхова абноўлены" }
+
+Delete_Password: { other: "Выдаліць пароль" }
+Enter_ID_to_delete: { other: "Увядзіце ID для выдалення" }
+Deleted: { other: "Выдалена" }
+Password_deleted: { other: "Пароль паспяхова выдалены" }

@@ -1,0 +1,24 @@
+meta {
+  name: Update_Passwrd
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:8080/passwords/21
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "service":   "GitHub1",
+    "link":      "https://github.com",
+    "username":  "Alex321",
+    "password":  "1234"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
