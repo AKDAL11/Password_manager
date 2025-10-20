@@ -1,3 +1,4 @@
+// pkg/utils/GeneratePassword.go
 package utils
 
 import (

@@ -76,7 +76,7 @@ func (a *App) SetMasterPassword(email, password string) error {
     if a.DB == nil {
         return errors.New("DB not initialized")
     }
-    // ВАЖНО: Storage.SaveMasterPassword принимает 2 аргумента (email, plain)
+
     return a.DB.SaveMasterPassword(email, password)
 }
 

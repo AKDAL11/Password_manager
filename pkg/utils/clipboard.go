@@ -1,3 +1,4 @@
+// pkg/utils/clipboard.go
 package utils
 
 import (
