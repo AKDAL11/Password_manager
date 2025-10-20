@@ -16,6 +16,9 @@ import (
 )
 
 func LaunchWithUnlock(a fyne.App) {
+    factory := CurrentFactory()
+    a.Settings().SetTheme(factory.Theme())
+
     appInstance := pmapp.InitDesktopApp("passwords.db")
 
     if !appInstance.DB.HasMasterPassword() {
@@ -24,6 +27,8 @@ func LaunchWithUnlock(a fyne.App) {
     }
 
     w := a.NewWindow(i18n.T("Unlock_Password_Manager"))
+    w.Resize(factory.WindowSize())
+    w.CenterOnScreen()
 
     title := widget.NewLabel("🔐 " + i18n.T("Unlock_Password_Manager"))
     title.Alignment = fyne.TextAlignCenter
@@ -60,13 +65,16 @@ func LaunchWithUnlock(a fyne.App) {
     )
 
     w.SetContent(container.NewCenter(content))
-    w.Resize(fyne.NewSize(400, 220))
-    w.CenterOnScreen()
     w.Show()
 }
 
 func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
+    factory := CurrentFactory()
+    a.Settings().SetTheme(factory.Theme())
+
     w := a.NewWindow(i18n.T("Create_Master_Password"))
+    w.Resize(factory.WindowSize())
+    w.CenterOnScreen()
 
     emailEntry := widget.NewEntry()
     emailEntry.SetPlaceHolder(i18n.T("Enter_your_email"))
@@ -118,7 +126,5 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
     )
 
     w.SetContent(container.NewCenter(content))
-    w.Resize(fyne.NewSize(640, 420))
-    w.CenterOnScreen()
     w.Show()
 }

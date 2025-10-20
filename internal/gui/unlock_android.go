@@ -17,6 +17,9 @@ import (
 )
 
 func LaunchWithUnlock(a fyne.App) {
+    factory := CurrentFactory()
+    a.Settings().SetTheme(factory.Theme())
+
     appInstance := appandroid.InitApp(a) // возвращает *pmapp.App
     if appInstance == nil {
         w := a.NewWindow("Error")
@@ -24,7 +27,7 @@ func LaunchWithUnlock(a fyne.App) {
         label.Alignment = fyne.TextAlignCenter
         fyne.Do(func() {
             w.SetContent(container.NewCenter(label))
-            w.Resize(fyne.NewSize(360, 200))
+            w.Resize(factory.SmallWindowSize())
             w.Show()
         })
         return
@@ -32,7 +35,6 @@ func LaunchWithUnlock(a fyne.App) {
 
     _ = i18n.LoadLocale(i18n.CurrentLang())
 
-    // Проверка: есть ли мастер‑пароль
     if !appInstance.HasMasterPassword() {
         showRegistrationWindow(a, appInstance)
         return
@@ -43,7 +45,10 @@ func LaunchWithUnlock(a fyne.App) {
 
 // --- Окно регистрации ---
 func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
+    factory := CurrentFactory()
     w := a.NewWindow(i18n.T("Create_Master_Password"))
+    w.Resize(factory.SmallWindowSize())
+    w.CenterOnScreen()
 
     emailEntry := widget.NewEntry()
     emailEntry.SetPlaceHolder(i18n.T("Enter_your_email"))
@@ -72,24 +77,40 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
         showUnlockWindow(a, appInstance)
     })
 
+    langSelect := widget.NewSelect([]string{"en", "ru", "be"}, func(lang string) {
+        if err := i18n.LoadLocale(lang); err != nil {
+            fmt.Println("Ошибка загрузки языка:", err)
+            return
+        }
+        w.SetTitle(i18n.T("Create_Master_Password"))
+        emailEntry.SetPlaceHolder(i18n.T("Enter_your_email"))
+        pass1.SetPlaceHolder(i18n.T("Create_Master_Password"))
+        pass2.SetPlaceHolder(i18n.T("Confirm_master_password"))
+        saveBtn.SetText(i18n.T("Save"))
+    })
+    langSelect.SetSelected(i18n.CurrentLang())
+
     content := container.NewVBox(
-        widget.NewLabel(i18n.T("First-time_setup")),
+        widget.NewLabel("🔐 " + i18n.T("First-time_setup")),
         emailEntry,
         pass1,
         pass2,
         saveBtn,
+        langSelect,
     )
 
     fyne.Do(func() {
         w.SetContent(container.NewCenter(content))
-        w.Resize(fyne.NewSize(360, 640))
         w.Show()
     })
 }
 
 // --- Окно разблокировки ---
 func showUnlockWindow(a fyne.App, appInstance *pmapp.App) {
+    factory := CurrentFactory()
     w := a.NewWindow(i18n.T("Unlock_Password_Manager"))
+    w.Resize(factory.SmallWindowSize())
+    w.CenterOnScreen()
 
     title := widget.NewLabel("🔐 " + i18n.T("Unlock_Password_Manager"))
     title.Alignment = fyne.TextAlignCenter
@@ -133,7 +154,6 @@ func showUnlockWindow(a fyne.App, appInstance *pmapp.App) {
 
     fyne.Do(func() {
         w.SetContent(container.NewCenter(content))
-        w.Resize(fyne.NewSize(360, 640))
         w.Show()
     })
 }

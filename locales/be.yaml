@@ -30,7 +30,7 @@ Refresh: { other: "Абнавіць" }
 ID: { other: "ID" }
 Created_At: { other: "Створана" }
 Link: { other: "Спасылка" }
-Copy_Password: { other: "Капіраваць пароль" }
+Copy: { other: "Капіраваць" }
 Link_copied: { other: "Спасылка скапіравана ў буфер абмену" }
 Password_copied: { other: "Пароль скапіраваны ў буфер абмену" }
 

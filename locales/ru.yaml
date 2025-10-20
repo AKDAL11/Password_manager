@@ -30,7 +30,7 @@ Refresh: { other: "Обновить" }
 ID: { other: "ID" }
 Created_At: { other: "Создано" }
 Link: { other: "Ссылка" }
-Copy_Password: { other: "Копировать пароль" }
+Copy: { other: "Копировать" }
 Link_copied: { other: "Ссылка скопирована в буфер обмена" }
 Password_copied: { other: "Пароль скопирован в буфер обмена" }
 

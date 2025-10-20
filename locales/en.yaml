@@ -30,7 +30,7 @@ Refresh: { other: "Refresh" }
 ID: { other: "ID" }
 Created_At: { other: "Created At" }
 Link: { other: "Link" }
-Copy_Password: { other: "Copy Password" }
+Copy: { other: "Copy" }
 Link_copied: { other: "Link copied to clipboard" }
 Password_copied: { other: "Password copied to clipboard" }
 
