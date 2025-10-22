@@ -28,15 +28,23 @@ func (s *SQLStorage) CreatePassword(p model.Password) (int64, string, error) {
         return 0, "", err
     }
 
-    res, err := s.DB.Exec(
-        "INSERT INTO passwords (service, username, link, password, category, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-        p.Service, p.Username, p.Link, encrypted, p.Category, createdAt,
+    // вычисляем MAX(id)
+    var maxID int64
+    err = s.DB.QueryRow("SELECT IFNULL(MAX(id), 0) FROM passwords").Scan(&maxID)
+    if err != nil {
+        return 0, "", err
+    }
+    newID := maxID + 1
+
+    _, err = s.DB.Exec(
+        "INSERT INTO passwords (id, service, username, link, password, category, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        newID, p.Service, p.Username, p.Link, encrypted, p.Category, createdAt,
     )
     if err != nil {
         return 0, "", err
     }
-    lastID, _ := res.LastInsertId()
-    return lastID, createdAt, nil
+
+    return newID, createdAt, nil
 }
 
 func (s *SQLStorage) GetAllPasswords() ([]model.PasswordListItem, error) {
@@ -91,8 +99,25 @@ func (s *SQLStorage) UpdatePassword(id string, p model.Password) error {
 }
 
 func (s *SQLStorage) DeletePassword(id string) error {
-    _, err := s.DB.Exec("DELETE FROM passwords WHERE id = ?", id)
-    return err
+    tx, err := s.DB.Begin()
+    if err != nil {
+        return err
+    }
+    defer tx.Rollback()
+
+    // удаляем запись
+    _, err = tx.Exec("DELETE FROM passwords WHERE id = ?", id)
+    if err != nil {
+        return err
+    }
+
+    // сдвигаем все ID после удалённого
+    _, err = tx.Exec("UPDATE passwords SET id = id - 1 WHERE id > ?", id)
+    if err != nil {
+        return err
+    }
+
+    return tx.Commit()
 }
 
 func (s *SQLStorage) Close() error {

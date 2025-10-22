@@ -18,7 +18,7 @@ Unlock_Session: { other: "Unlock Session" }
 Unlock: { other: "Unlock" }
 Exit: { other: "Exit" }
 
-Show_Filters: { other: "Show Filters" }
+Show_Filters: { other: "Filters" }
 Service: { other: "Service" }
 Username: { other: "Username" }
 Category: { other: "Category" }

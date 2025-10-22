@@ -18,7 +18,7 @@ Unlock_Session: { other: "Разблакіраваць сесію" }
 Unlock: { other: "Разблакіраваць" }
 Exit: { other: "Выйсці" }
 
-Show_Filters: { other: "Паказаць фільтры" }
+Show_Filters: { other: "Фільтры" }
 Service: { other: "Сэрвіс" }
 Username: { other: "Імя карыстальніка" }
 Category: { other: "Катэгорыя" }

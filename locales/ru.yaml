@@ -18,7 +18,7 @@ Unlock_Session: { other: "Разблокировать сессию" }
 Unlock: { other: "Разблокировать" }
 Exit: { other: "Выход" }
 
-Show_Filters: { other: "Показать фильтры" }
+Show_Filters: { other: "Фильтры" }
 Service: { other: "Сервис" }
 Username: { other: "Имя пользователя" }
 Category: { other: "Категория" }

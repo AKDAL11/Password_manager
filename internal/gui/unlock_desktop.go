@@ -9,6 +9,7 @@ import (
     "fyne.io/fyne/v2"
     "fyne.io/fyne/v2/container"
     "fyne.io/fyne/v2/dialog"
+    "fyne.io/fyne/v2/theme"
     "fyne.io/fyne/v2/widget"
 
     pmapp "password-manager/internal/app"
@@ -27,16 +28,21 @@ func LaunchWithUnlock(a fyne.App) {
     }
 
     w := a.NewWindow(i18n.T("Unlock_Password_Manager"))
-    w.Resize(factory.WindowSize())
+    w.Resize(factory.SmallWindowSize()) // окно меньше
     w.CenterOnScreen()
 
+    // Заголовок
     title := widget.NewLabel("🔐 " + i18n.T("Unlock_Password_Manager"))
     title.Alignment = fyne.TextAlignCenter
+    title.TextStyle = fyne.TextStyle{Bold: true}
 
     passwordEntry := widget.NewPasswordEntry()
     passwordEntry.SetPlaceHolder(i18n.T("Enter_master_password"))
 
-    unlockBtn := widget.NewButton(i18n.T("Unlock"), func() {
+    help := widget.NewLabel(i18n.T("Enter_master_password_to_continue"))
+    help.Alignment = fyne.TextAlignCenter
+
+    unlockBtn := widget.NewButtonWithIcon(i18n.T("Unlock"), theme.ConfirmIcon(), func() {
         if ok := appInstance.VerifyMasterPassword(passwordEntry.Text); !ok {
             dialog.ShowError(errors.New(i18n.T("invalid_master_password")), w)
             return
@@ -44,6 +50,7 @@ func LaunchWithUnlock(a fyne.App) {
         w.Hide()
         ShowMainWindow(a, appInstance)
     })
+    unlockBtn.Importance = widget.HighImportance
 
     langSelect := widget.NewSelect([]string{"en", "ru", "be"}, func(lang string) {
         if err := i18n.LoadLocale(lang); err != nil {
@@ -57,14 +64,18 @@ func LaunchWithUnlock(a fyne.App) {
     })
     langSelect.SetSelected(i18n.CurrentLang())
 
-    content := container.NewVBox(
+    form := container.NewVBox(
         title,
+        widget.NewSeparator(),
+        help,
         passwordEntry,
         unlockBtn,
+        widget.NewSeparator(),
+        widget.NewLabel("🌐 "+i18n.T("Language")),
         langSelect,
     )
 
-    w.SetContent(container.NewCenter(content))
+    w.SetContent(container.NewCenter(container.NewPadded(form)))
     w.Show()
 }
 
@@ -73,8 +84,13 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
     a.Settings().SetTheme(factory.Theme())
 
     w := a.NewWindow(i18n.T("Create_Master_Password"))
-    w.Resize(factory.WindowSize())
+    w.Resize(factory.SmallWindowSize()) // окно меньше
     w.CenterOnScreen()
+
+    // Заголовок
+    title := widget.NewLabel("🔐 " + i18n.T("First-time_setup"))
+    title.Alignment = fyne.TextAlignCenter
+    title.TextStyle = fyne.TextStyle{Bold: true}
 
     emailEntry := widget.NewEntry()
     emailEntry.SetPlaceHolder(i18n.T("Enter_your_email"))
@@ -85,7 +101,10 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
     confirmEntry := widget.NewPasswordEntry()
     confirmEntry.SetPlaceHolder(i18n.T("Confirm_master_password"))
 
-    save := widget.NewButton(i18n.T("Save"), func() {
+    hint := widget.NewLabel(i18n.T("Remember_master_password_hint"))
+    hint.Alignment = fyne.TextAlignCenter
+
+    save := widget.NewButtonWithIcon(i18n.T("Save"), theme.DocumentSaveIcon(), func() {
         if passwordEntry.Text != confirmEntry.Text {
             dialog.ShowError(errors.New(i18n.T("passwords_do_not_match")), w)
             return
@@ -102,6 +121,7 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
         w.Hide()
         LaunchWithUnlock(a)
     })
+    save.Importance = widget.HighImportance
 
     langSelect := widget.NewSelect([]string{"en", "ru", "be"}, func(lang string) {
         if err := i18n.LoadLocale(lang); err != nil {
@@ -116,15 +136,19 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
     })
     langSelect.SetSelected(i18n.CurrentLang())
 
-    content := container.NewVBox(
-        widget.NewLabel("🔐 " + i18n.T("First-time_setup")),
-        emailEntry,
-        passwordEntry,
-        confirmEntry,
+    form := container.NewVBox(
+        title,
+        widget.NewSeparator(),
+        widget.NewLabel("📧 "+i18n.T("Email")), emailEntry,
+        widget.NewLabel("🔑 "+i18n.T("Password")), passwordEntry,
+        widget.NewLabel("✅ "+i18n.T("Confirm")), confirmEntry,
+        hint,
         save,
+        widget.NewSeparator(),
+        widget.NewLabel("🌐 "+i18n.T("Language")),
         langSelect,
     )
 
-    w.SetContent(container.NewCenter(content))
+    w.SetContent(container.NewCenter(container.NewPadded(form)))
     w.Show()
 }
