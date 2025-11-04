@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+# Копируем ярлык на рабочий стол текущего пользователя
+for user in /home/*; do
+    if [ -d "$user/Desktop" ]; then
+        cp /usr/share/applications/password-manager.desktop "$user/Desktop/"
+        chown $(basename "$user"):$(basename "$user") "$user/Desktop/password-manager.desktop"
+        chmod +x "$user/Desktop/password-manager.desktop"
+    fi
+done
+
+exit 0
+

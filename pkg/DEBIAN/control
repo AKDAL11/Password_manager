@@ -1,0 +1,9 @@
+Package: password-manager
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Alex <mr9891549@gmail.com>
+Description: Password manager written in Go
+ A longer description of your app.
+
