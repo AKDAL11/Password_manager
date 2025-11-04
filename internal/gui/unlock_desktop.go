@@ -22,16 +22,17 @@ func LaunchWithUnlock(a fyne.App) {
 
     appInstance := pmapp.InitDesktopApp("passwords.db")
 
-    if !appInstance.DB.HasMasterPassword() {
+    // Было: appInstance.DB.HasMasterPassword()
+    // Стало: appInstance.HasMeta()
+    if !appInstance.HasMeta() {
         showCreateMasterPasswordForm(a, appInstance)
         return
     }
 
     w := a.NewWindow(i18n.T("Unlock_Password_Manager"))
-    w.Resize(factory.SmallWindowSize()) // окно меньше
+    w.Resize(factory.SmallWindowSize())
     w.CenterOnScreen()
 
-    // Заголовок
     title := widget.NewLabel("🔐 " + i18n.T("Unlock_Password_Manager"))
     title.Alignment = fyne.TextAlignCenter
     title.TextStyle = fyne.TextStyle{Bold: true}
@@ -43,7 +44,9 @@ func LaunchWithUnlock(a fyne.App) {
     help.Alignment = fyne.TextAlignCenter
 
     unlockBtn := widget.NewButtonWithIcon(i18n.T("Unlock"), theme.ConfirmIcon(), func() {
-        if ok := appInstance.VerifyMasterPassword(passwordEntry.Text); !ok {
+        // Было: VerifyMasterPassword(...)
+        // Стало: InitializeMasterWithPassword(...)
+        if err := appInstance.InitializeMasterWithPassword(passwordEntry.Text); err != nil {
             dialog.ShowError(errors.New(i18n.T("invalid_master_password")), w)
             return
         }
@@ -84,10 +87,9 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
     a.Settings().SetTheme(factory.Theme())
 
     w := a.NewWindow(i18n.T("Create_Master_Password"))
-    w.Resize(factory.SmallWindowSize()) // окно меньше
+    w.Resize(factory.SmallWindowSize())
     w.CenterOnScreen()
 
-    // Заголовок
     title := widget.NewLabel("🔐 " + i18n.T("First-time_setup"))
     title.Alignment = fyne.TextAlignCenter
     title.TextStyle = fyne.TextStyle{Bold: true}
@@ -113,7 +115,9 @@ func showCreateMasterPasswordForm(a fyne.App, appInstance *pmapp.App) {
             dialog.ShowError(errors.New(i18n.T("email_and_password_required")), w)
             return
         }
-        if err := appInstance.DB.SaveMasterPassword(emailEntry.Text, passwordEntry.Text); err != nil {
+        // Было: appInstance.DB.SaveMasterPassword(...)
+        // Стало: InitializeMasterWithPassword(...)
+        if err := appInstance.InitializeMasterWithPassword(passwordEntry.Text); err != nil {
             dialog.ShowError(err, w)
             return
         }

@@ -112,30 +112,30 @@ func (h *Handler) UpdatePassword(c echo.Context) error {
 
 // Copy password to clipboard
 func (h *Handler) CopyPassword(c echo.Context) error {
-    id := c.Param("id")
-    encrypted, err := h.App.DB.GetEncryptedPassword(id)
+    idStr := c.Param("id")
+    id, err := strconv.Atoi(idStr)
     if err != nil {
-        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to retrieve encrypted password"))
+        return c.JSON(http.StatusBadRequest, utils.JSONError("Некорректный ID"))
     }
 
-    password, err := h.App.Crypto.Decrypt(encrypted)
+    encB64, err := h.App.DB.GetEncryptedPasswordByID(id)
     if err != nil {
-        h.App.Logger.Error("Decrypt error:", err)
-        return c.JSON(http.StatusInternalServerError, utils.JSONError("Decryption failed"))
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Не удалось получить зашифрованный пароль"))
     }
 
-    if err := utils.CopyToClipboard(password); err != nil {
-        return c.JSON(http.StatusInternalServerError, utils.JSONError("Failed to copy to clipboard"))
+    if err := utils.CopyToClipboard(encB64, h.App.Crypto); err != nil {
+        h.App.Logger.Error("Ошибка копирования:", err)
+        return c.JSON(http.StatusInternalServerError, utils.JSONError("Ошибка при копировании"))
     }
 
     go func() {
         time.Sleep(10 * time.Second)
-        if err := utils.CopyToClipboard(""); err != nil {
-            h.App.Logger.Error("Failed to clear clipboard:", err)
-        }
+        _ = utils.CopyToClipboard("", h.App.Crypto)
     }()
 
-    return c.JSON(http.StatusOK, map[string]string{"status": "Password copied to clipboard. Will be cleared in 10 seconds."})
+    return c.JSON(http.StatusOK, map[string]string{
+        "status": "Пароль скопирован в буфер обмена. Будет очищен через 10 секунд.",
+    })
 }
 
 // Delete a password entry

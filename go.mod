@@ -6,8 +6,6 @@ toolchain go1.24.7
 
 require (
 	fyne.io/fyne/v2 v2.6.3
-	github.com/atotto/clipboard v0.1.4
-	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/wagslane/go-password-validator v0.3.0
@@ -16,10 +14,8 @@ require (
 )
 
 require (
-	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	fyne.io/systray v1.11.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
@@ -50,7 +46,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
-	github.com/zalando/go-keyring v0.2.6 // indirect
 	golang.org/x/image v0.24.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect

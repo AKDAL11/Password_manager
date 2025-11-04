@@ -10,7 +10,6 @@ Success: { other: "Success" }
 Master_password_saved: { other: "Master password saved" }
 passwords_do_not_match: { other: "Passwords do not match" }
 email_and_password_required: { other: "Email and password are required" }
-First-time_setup: { other: "First-time setup" }
 
 Session_locked: { other: "Session locked due to inactivity" }
 Master_Password: { other: "Master Password" }
@@ -41,7 +40,6 @@ Delete: { other: "Delete" }
 Your_Passwords: { other: "Your Passwords" }
 
 Create_Password: { other: "Create Password" }
-Password: { other: "Password" }
 Length: { other: "Length" }
 Exclude: { other: "Exclude" }
 Exclude_chars: { other: "Exclude chars" }
@@ -68,3 +66,16 @@ Delete_Password: { other: "Delete Password" }
 Enter_ID_to_delete: { other: "Enter ID to delete" }
 Deleted: { other: "Deleted" }
 Password_deleted: { other: "Password deleted successfully" }
+
+Remember_master_password_hint: { other: "Remember your master password — it cannot be recovered if lost." }
+First-time_setup: { other: "First-time setup" }
+Email: { other: "Email" }
+Password: { other: "Password" }
+Confirm: { other: "Confirm" }
+Language: { other: "Language" }
+Enter_master_password_to_continue: { other: "Enter master password to continue" }
+Welcome_to_Manager: { other: "Welcome to Password Manager" }
+Any: { other: "Any" }
+No_results_yet: { other: "No results yet" }
+Leave_fields_empty_for_all: { other: "Leave fields empty to show all" }
+No_matching_entries: { other: "No matching entries" }

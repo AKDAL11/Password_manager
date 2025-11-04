@@ -28,7 +28,6 @@ func LaunchWithUnlock(a fyne.App) {
         label.Alignment = fyne.TextAlignCenter
         label.TextStyle = fyne.TextStyle{Bold: true}
 
-        // компактное окно ошибки с паддингом
         card := container.NewVBox(
             widget.NewLabelWithStyle("❗ "+i18n.T("Initialization_error"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
             widget.NewSeparator(),
@@ -45,7 +44,9 @@ func LaunchWithUnlock(a fyne.App) {
 
     _ = i18n.LoadLocale(i18n.CurrentLang())
 
-    if !appInstance.HasMasterPassword() {
+    // Было: appInstance.HasMasterPassword()
+    // Стало: проверка наличия meta (соль+верификатор)
+    if !appInstance.HasMeta() {
         showRegistrationWindow(a, appInstance)
         return
     }
@@ -60,12 +61,10 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
     w.Resize(factory.SmallWindowSize())
     w.CenterOnScreen()
 
-    // Заголовок
     title := widget.NewLabel("🔐 " + i18n.T("First-time_setup"))
     title.Alignment = fyne.TextAlignCenter
     title.TextStyle = fyne.TextStyle{Bold: true}
 
-    // Поля
     emailEntry := widget.NewEntry()
     emailEntry.SetPlaceHolder(i18n.T("Enter_your_email"))
 
@@ -75,7 +74,6 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
     pass2 := widget.NewPasswordEntry()
     pass2.SetPlaceHolder(i18n.T("Confirm_master_password"))
 
-    // Кнопка сохранения
     saveBtn := widget.NewButtonWithIcon(i18n.T("Save"), theme.ConfirmIcon(), func() {
         if pass1.Text == "" || emailEntry.Text == "" {
             dialog.ShowError(errors.New(i18n.T("email_and_password_required")), w)
@@ -85,7 +83,9 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
             dialog.ShowError(errors.New(i18n.T("passwords_do_not_match")), w)
             return
         }
-        if err := appInstance.SetMasterPassword(emailEntry.Text, pass1.Text); err != nil {
+        // Было: appInstance.SetMasterPassword(...)
+        // Стало: инициализация meta через пароль
+        if err := appInstance.InitializeMasterWithPassword(pass1.Text); err != nil {
             dialog.ShowError(err, w)
             return
         }
@@ -95,13 +95,11 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
     })
     saveBtn.Importance = widget.HighImportance
 
-    // Выбор языка
     langSelect := widget.NewSelect([]string{"en", "ru", "be"}, func(lang string) {
         if err := i18n.LoadLocale(lang); err != nil {
             fmt.Println("Ошибка загрузки языка:", err)
             return
         }
-        // Обновляем текстовые элементы
         w.SetTitle("🔐 " + i18n.T("Create_Master_Password"))
         title.SetText("🔐 " + i18n.T("First-time_setup"))
         emailEntry.SetPlaceHolder(i18n.T("Enter_your_email"))
@@ -111,7 +109,6 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
     })
     langSelect.SetSelected(i18n.CurrentLang())
 
-    // Разметка: аккуратная карточка
     form := container.NewVBox(
         widget.NewLabelWithStyle("📧 "+i18n.T("Email"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
         emailEntry,
@@ -121,20 +118,10 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
         pass2,
     )
 
-    actions := container.NewHBox(
-        saveBtn,
-        langSelect,
-    )
+    actions := container.NewHBox(saveBtn, langSelect)
 
-    card := container.NewVBox(
-        title,
-        widget.NewSeparator(),
-        form,
-        widget.NewSeparator(),
-        actions,
-    )
+    card := container.NewVBox(title, widget.NewSeparator(), form, widget.NewSeparator(), actions)
 
-    // Паддинг и центрирование для «красоты»
     fyne.Do(func() {
         w.SetContent(container.NewCenter(container.NewPadded(card)))
         w.Show()
@@ -145,21 +132,21 @@ func showRegistrationWindow(a fyne.App, appInstance *pmapp.App) {
 func showUnlockWindow(a fyne.App, appInstance *pmapp.App) {
     factory := CurrentFactory()
     w := a.NewWindow("🔐 " + i18n.T("Unlock_Password_Manager"))
+    configureWindow(w)
     w.Resize(factory.SmallWindowSize())
     w.CenterOnScreen()
 
-    // Заголовок
     title := widget.NewLabel("🔐 " + i18n.T("Unlock_Password_Manager"))
     title.Alignment = fyne.TextAlignCenter
     title.TextStyle = fyne.TextStyle{Bold: true}
 
-    // Поле ввода
     passwordEntry := widget.NewPasswordEntry()
     passwordEntry.SetPlaceHolder(i18n.T("Enter_master_password"))
 
-    // Кнопки
     unlockBtn := widget.NewButtonWithIcon(i18n.T("Unlock"), theme.LoginIcon(), func() {
-        if ok := appInstance.VerifyMasterPassword(passwordEntry.Text); !ok {
+        // Было: VerifyMasterPassword(...)
+        // Стало: InitializeMasterWithPassword(...) — инициализация ключа через meta
+        if err := appInstance.InitializeMasterWithPassword(passwordEntry.Text); err != nil {
             fyne.Do(func() {
                 dialog.ShowError(errors.New(i18n.T("invalid_master_password")), w)
             })
@@ -172,7 +159,6 @@ func showUnlockWindow(a fyne.App, appInstance *pmapp.App) {
     })
     unlockBtn.Importance = widget.HighImportance
 
-    // Переключатель языка
     langSelect := widget.NewSelect([]string{"en", "ru", "be"}, func(lang string) {
         if err := i18n.LoadLocale(lang); err != nil {
             fmt.Println("Ошибка загрузки языка:", err)
@@ -187,7 +173,6 @@ func showUnlockWindow(a fyne.App, appInstance *pmapp.App) {
     })
     langSelect.SetSelected(i18n.CurrentLang())
 
-    // «Карточка» с разделителями и паддингом
     card := container.NewVBox(
         title,
         widget.NewSeparator(),

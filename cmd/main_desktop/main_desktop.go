@@ -3,18 +3,27 @@
 package main
 
 import (
+    "log"
+
+    _ "github.com/mattn/go-sqlite3"
     fyneapp "fyne.io/fyne/v2/app"
+
     "password-manager/internal/gui"
     "password-manager/internal/i18n"
 )
 
 func main() {
-    // Загружаем язык при старте
+    // Загружаем локаль
     if err := i18n.LoadLocale("en"); err != nil {
-        panic(err)
+        log.Fatal(err)
     }
 
+    // Создаём приложение Fyne
     a := fyneapp.New()
-    gui.LaunchWithUnlock(a) // передаём реальный fyne.App
+
+    // Запускаем через экран разблокировки/создания мастер‑пароля
+    gui.LaunchWithUnlock(a)
+
+    // Запускаем цикл приложения
     a.Run()
 }

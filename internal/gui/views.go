@@ -1,13 +1,10 @@
 package gui
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/zalando/go-keyring"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -16,128 +13,116 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"password-manager/internal/app"
+	"password-manager/internal/app/db"
 	"password-manager/internal/app/model"
 	"password-manager/internal/i18n"
 	"password-manager/pkg/utils"
 )
-
-const (
-	keyringService = "PasswordManager"
-	keyringUser    = "encryption-key"
-)
-
-// генерирует новый ключ (32 байта)
-func generateKey() []byte {
-	key := make([]byte, 32)
-	_, err := rand.Read(key)
-	if err != nil {
-		panic(err)
-	}
-	return key
-}
-
-// получает ключ из системного хранилища или создаёт новый (ключ хранится в base64)
-func getOrCreateKey() []byte {
-	keyStr, err := keyring.Get(keyringService, keyringUser)
-	if err == keyring.ErrNotFound {
-		key := generateKey()
-		_ = keyring.Set(keyringService, keyringUser, base64.StdEncoding.EncodeToString(key))
-		return key
-	} else if err != nil {
-		// если хранилище недоступно — аварийно генерируем ключ в памяти (старые зашифрованные данные не расшифруются)
-		return generateKey()
-	}
-	decoded, decErr := base64.StdEncoding.DecodeString(keyStr)
-	if decErr != nil || len(decoded) != 32 {
-		// если повреждён ключ в хранилище — генерируем новый (лучше залогировать и попросить пользователя мигрировать)
-		return generateKey()
-	}
-	return decoded
-}
 
 func ShowMainWindow(a fyne.App, appInstance *app.App) {
 	factory := CurrentFactory()
 	a.Settings().SetTheme(factory.Theme())
 
 	w := a.NewWindow(i18n.T("Password_Manager"))
+	configureWindow(w)
 	w.SetOnClosed(func() { a.Quit() })
 	w.Resize(factory.WindowSize())
 	w.CenterOnScreen()
 
+	// --- Автоблокировка при бездействии ---
+	const idleTimeout = 2 * time.Minute
+	var idleTimer *time.Timer
+
+	resetIdleTimer := func() {
+		if idleTimer != nil {
+			idleTimer.Stop()
+		}
+		idleTimer = time.AfterFunc(idleTimeout, func() {
+			fyne.Do(func() {
+
+				w.Hide()
+
+				LaunchWithUnlock(a)
+
+			})
+		})
+	}
+
+	canvas := w.Canvas()
+	canvas.SetOnTypedKey(func(ev *fyne.KeyEvent) { resetIdleTimer() })
+	canvas.SetOnTypedRune(func(r rune) { resetIdleTimer() })
+
+	// запускаем таймер при старте
+	resetIdleTimer()
+
+	// Загружаем список
 	passwords, err := appInstance.DB.GetAllPasswords()
 	if err != nil {
 		dialog.ShowError(err, w)
 		return
 	}
+	currentList := &passwords
 
-	currentList := passwords
-	// статус оставляем, но используем только для копирования пароля/ссылки
 	statusLabel := widget.NewLabel("")
 	statusLabel.Wrapping = fyne.TextTruncate
 	statusLabel.Alignment = fyne.TextAlignLeading
 
-	key := getOrCreateKey()
-	cryptoSvc := utils.NewCryptoService(key)
-	appInstance.Crypto = cryptoSvc
+	cryptoSvc := appInstance.Crypto
 
-	table, tableContainer := buildPasswordTable(&currentList, statusLabel, w, cryptoSvc)
+	var table *widget.Table
+	table, tableContent := buildPasswordTable(currentList, statusLabel, w, cryptoSvc, appInstance.DB)
 
+	// Сохраняем ссылки на элементы, чтобы обновлять при смене языка
 	welcomeLabel := widget.NewLabel("🔐 " + i18n.T("Welcome_to_Manager"))
 	welcomeLabel.Alignment = fyne.TextAlignCenter
 	welcomeLabel.TextStyle = fyne.TextStyle{Bold: true}
+
 	headerLabel := widget.NewLabel("🔑 " + i18n.T("Your_Passwords"))
 	headerLabel.TextStyle = fyne.TextStyle{Bold: true}
 
-	mainContent := container.NewBorder(
-		container.NewVBox(welcomeLabel, headerLabel, widget.NewSeparator()),
-		container.NewVBox(statusLabel),
-		nil, nil,
-		tableContainer,
-	)
-
-	// Единый refresh — обновляет список и перерисовывает таблицу (без сообщений)
-	refreshMain := func() {
-		newList, err := appInstance.DB.GetAllPasswords()
-		if err != nil {
-			dialog.ShowError(err, w)
-			return
-		}
-		currentList = newList
-		table.Length = func() (int, int) { return len(currentList) + 1, len(tableColumns) }
-		table.Refresh()
-	}
-
-	// Кнопки вызывают окна с колбэком onSuccess
 	addBtn := widget.NewButtonWithIcon(i18n.T("Add"), theme.ContentAddIcon(), func() {
-		ShowCreateForm(a, appInstance, refreshMain)
+		ShowCreateForm(a, appInstance, func() {
+			newList, _ := appInstance.DB.GetAllPasswords()
+			*currentList = newList
+			table.Refresh()
+		})
 	})
 	updateBtn := widget.NewButtonWithIcon(i18n.T("Update"), theme.DocumentCreateIcon(), func() {
-		ShowUpdateWindow(a, appInstance, refreshMain)
+		ShowUpdateWindow(a, appInstance, func() {
+			newList, _ := appInstance.DB.GetAllPasswords()
+			*currentList = newList
+			table.Refresh()
+		})
 	})
 	deleteBtn := widget.NewButtonWithIcon(i18n.T("Delete"), theme.DeleteIcon(), func() {
-		ShowDeleteWindow(a, appInstance, refreshMain)
+		ShowDeleteWindow(a, appInstance, func() {
+			newList, _ := appInstance.DB.GetAllPasswords()
+			*currentList = newList
+			table.Refresh()
+		})
 	})
 	filterBtn := widget.NewButtonWithIcon(i18n.T("Show_Filters"), theme.SearchIcon(), func() {
 		ShowFilterWindow(a, appInstance)
 	})
 
-	langSelect := widget.NewSelect([]string{"en", "ru", "be"}, nil)
-	langSelect.SetSelected(i18n.CurrentLang())
+	mainContent := container.NewBorder(
+		container.NewVBox(welcomeLabel, headerLabel, widget.NewSeparator()),
+		nil, nil, nil,
+		tableContent,
+	)
 
 	if fyne.CurrentDevice().IsMobile() {
-		// Мобильный: меню снизу, всегда развернуто
 		sidebarTop := container.NewVBox(addBtn, updateBtn, deleteBtn, filterBtn)
-		sidebarBottom := container.NewVBox(widget.NewSeparator(), langSelect)
-		sidebarContent := container.NewBorder(nil, sidebarBottom, nil, nil, sidebarTop)
+		sidebarContent := container.NewBorder(nil, nil, nil, nil, sidebarTop)
 
 		tabs := container.NewAppTabs(
 			container.NewTabItem(i18n.T("Menu"), sidebarContent),
 			container.NewTabItem(i18n.T("Passwords"), mainContent),
 		)
 		tabs.SetTabLocation(container.TabLocationBottom)
-		w.SetContent(tabs)
 
-		langSelect.OnChanged = func(lang string) {
+		// обновление при смене языка
+		langSelect := widget.NewSelect([]string{"en", "ru", "be"}, func(lang string) {
 			if err := i18n.LoadLocale(lang); err != nil {
 				dialog.ShowError(err, w)
 				return
@@ -149,11 +134,17 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 			updateBtn.SetText(i18n.T("Update"))
 			deleteBtn.SetText(i18n.T("Delete"))
 			filterBtn.SetText(i18n.T("Show_Filters"))
-			welcomeLabel.Refresh()
-			headerLabel.Refresh()
-		}
+			tabs.Items[0].Text = i18n.T("Menu")
+			tabs.Items[1].Text = i18n.T("Passwords")
+			tabs.Refresh()
+		})
+		langSelect.SetSelected(i18n.CurrentLang())
+
+		w.SetContent(container.NewBorder(nil, langSelect, nil, nil, tabs))
 	} else {
-		// Десктоп: HSplit, всегда развернуто, без кнопки сворачивания
+		langSelect := widget.NewSelect([]string{"en", "ru", "be"}, nil)
+		langSelect.SetSelected(i18n.CurrentLang())
+
 		sidebarTop := container.NewVBox(addBtn, updateBtn, deleteBtn, filterBtn)
 		sidebarBottom := container.NewVBox(widget.NewSeparator(), langSelect)
 		sidebarContent := container.NewBorder(nil, sidebarBottom, nil, nil, sidebarTop)
@@ -162,6 +153,7 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 		split.Offset = 0.2
 		w.SetContent(split)
 
+		// обновление при смене языка
 		langSelect.OnChanged = func(lang string) {
 			if err := i18n.LoadLocale(lang); err != nil {
 				dialog.ShowError(err, w)
@@ -174,11 +166,10 @@ func ShowMainWindow(a fyne.App, appInstance *app.App) {
 			updateBtn.SetText(i18n.T("Update"))
 			deleteBtn.SetText(i18n.T("Delete"))
 			filterBtn.SetText(i18n.T("Show_Filters"))
-			welcomeLabel.Refresh()
-			headerLabel.Refresh()
+			table.Refresh()
+			split.Refresh()
 		}
 	}
-
 	w.Show()
 }
 
@@ -206,13 +197,15 @@ func buildPasswordTable(
 	statusLabel *widget.Label,
 	w fyne.Window,
 	cryptoSvc *utils.CryptoService,
+	storage db.Storage,
 ) (*widget.Table, fyne.CanvasObject) {
 
-	size := w.Canvas().Size()
-	columnWidths := []float32{50, 150, 200, 120, 180, 200, 120}
+	columnWidths := []float32{60, 180, 180, 140, 160, 220, 120}
 	rowHeights := make(map[int]float32)
 
+	// объявляем table заранее
 	var table *widget.Table
+
 	table = widget.NewTable(
 		func() (int, int) { return len(*currentList) + 1, len(tableColumns) },
 		func() fyne.CanvasObject {
@@ -228,8 +221,8 @@ func buildPasswordTable(
 			tap := c.Objects[1].(*tapOverlay)
 
 			label.Hide()
+			tap.onTap = nil
 
-			// Заголовки
 			if cell.Row == 0 {
 				label.SetText(tableColumns[cell.Col])
 				label.TextStyle = fyne.TextStyle{Bold: true}
@@ -256,7 +249,7 @@ func buildPasswordTable(
 				text = row.Category
 			case 4:
 				if t, err := time.Parse(time.RFC3339, row.CreatedAt); err == nil {
-					text = t.Local().Format("02 January 2006, 15:04")
+					text = t.Local().Format("02 Jan 2006, 15:04")
 				} else {
 					text = row.CreatedAt
 				}
@@ -267,26 +260,44 @@ func buildPasswordTable(
 			}
 
 			label.SetText(text)
+			label.Alignment = fyne.TextAlignLeading
 			label.Show()
 
-			// Password: копирование
 			if cell.Col == 6 {
 				tap.onTap = func() {
-					decrypted, err := cryptoSvc.Decrypt(row.Password)
+					sqlStore, ok := storage.(*db.SQLStorage)
+					if !ok {
+						dialog.ShowError(errors.New("storage backend does not support direct access"), w)
+						return
+					}
+
+					encB64, err := sqlStore.GetEncryptedPasswordByID(row.ID)
 					if err != nil {
 						dialog.ShowError(err, w)
 						return
 					}
-					fyne.CurrentApp().Clipboard().SetContent(decrypted)
+
+					if err := utils.CopyToClipboard(encB64, cryptoSvc); err != nil {
+						dialog.ShowError(err, w)
+						return
+					}
+
 					statusLabel.SetText(i18n.T("Password_copied"))
 					clearStatusLater(statusLabel)
+
+					go func() {
+						time.Sleep(15 * time.Second)
+						fyne.Do(func() {
+							fyne.CurrentApp().Clipboard().SetContent("")
+						})
+					}()
 				}
 				return
 			}
 
 			if cell.Col == 5 {
 				tap.onTap = func() {
-					if row.Link != "" {
+					if strings.TrimSpace(row.Link) != "" {
 						fyne.CurrentApp().Clipboard().SetContent(row.Link)
 						statusLabel.SetText(i18n.T("Link_copied"))
 						clearStatusLater(statusLabel)
@@ -295,40 +306,36 @@ func buildPasswordTable(
 				return
 			}
 
-			// Остальные: раскрытие строки
 			tap.onTap = func() {
 				if rowHeights[cell.Row] == 0 {
-					rowHeights[cell.Row] = 80
-					table.SetRowHeight(cell.Row, 80)
+					rowHeights[cell.Row] = 72
+					table.SetRowHeight(cell.Row, 72)
 					label.Wrapping = fyne.TextWrapWord
 					label.Truncation = fyne.TextTruncateOff
 				} else {
 					rowHeights[cell.Row] = 0
-					table.SetRowHeight(cell.Row, 30)
+					table.SetRowHeight(cell.Row, 32)
 					label.Wrapping = fyne.TextWrapOff
 					label.Truncation = fyne.TextTruncateEllipsis
 				}
 				table.Refresh()
 			}
-
 		},
 	)
 
-	// Задаём ширину и высоту
-	for i, wcol := range columnWidths {
-		table.SetColumnWidth(i, wcol)
+	for i := range tableColumns {
+		if i < len(columnWidths) {
+			table.SetColumnWidth(i, columnWidths[i])
+		}
 	}
 	for r := 0; r < len(*currentList)+1; r++ {
-		table.SetRowHeight(r, 30)
+		table.SetRowHeight(r, 32)
 	}
 
-	// Оборачиваем в скролл
 	scroll := container.NewScroll(table)
-	scroll.SetMinSize(fyne.NewSize(size.Width, size.Height*0.6))
+	scroll.SetMinSize(fyne.NewSize(w.Canvas().Size().Width, w.Canvas().Size().Height*0.6))
 
 	statusBox := container.NewVBox(widget.NewSeparator(), statusLabel)
-	statusBox.Resize(fyne.NewSize(size.Width, 30))
-
 	content := container.NewBorder(nil, statusBox, nil, nil, scroll)
 	return table, content
 }
@@ -408,12 +415,26 @@ func ShowCreateForm(a fyne.App, appInstance *app.App, onSuccess func()) {
 			clearStatusLater(localStatus)
 			return
 		}
-		password, err := utils.GeneratePassword(length, useUpper.Checked, useLower.Checked, useDigits.Checked, useSymbols.Checked, excludeEntry.Text)
-		if err != nil {
-			localStatus.SetText(i18n.T("Generation_error") + ": " + err.Error())
-			clearStatusLater(localStatus)
-			return
+
+		var password string
+		for {
+			password, err = utils.GeneratePassword(length, useUpper.Checked, useLower.Checked, useDigits.Checked, useSymbols.Checked, excludeEntry.Text)
+			if err != nil {
+				localStatus.SetText(i18n.T("Generation_error") + ": " + err.Error())
+				clearStatusLater(localStatus)
+				return
+			}
+			// Проверяем, что пароль проходит все условия
+			if len(password) >= 8 &&
+				strings.ContainsAny(password, "0123456789") &&
+				strings.ContainsAny(password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") &&
+				strings.ContainsAny(password, "abcdefghijklmnopqrstuvwxyz") &&
+				strings.ContainsAny(password, "!@#$%^&*()-_=+[]{}<>?/") {
+				break
+			}
+			// иначе генерируем заново
 		}
+
 		passwordEntry.SetText(password)
 		localStatus.SetText(i18n.T("Generated_inserted"))
 		clearStatusLater(localStatus)
@@ -455,7 +476,6 @@ func ShowCreateForm(a fyne.App, appInstance *app.App, onSuccess func()) {
 		}
 		p.Password = encrypted
 
-		// CreatePassword returns (int64, string, error)
 		if _, _, err := appInstance.DB.CreatePassword(p); err != nil {
 			dialog.ShowError(err, w)
 			return
@@ -502,7 +522,6 @@ func ShowFilterWindow(a fyne.App, appInstance *app.App) {
 
 	resultBox := container.NewVBox(widget.NewLabel(i18n.T("No_results_yet")))
 
-	// форма в стиле ShowCreateForm
 	form := container.NewVBox(
 		widget.NewLabelWithStyle("🔧 "+i18n.T("Service"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		service,
@@ -511,9 +530,6 @@ func ShowFilterWindow(a fyne.App, appInstance *app.App) {
 		widget.NewLabelWithStyle("📂 "+i18n.T("Category"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 		category,
 	)
-
-	hint := widget.NewLabel("ℹ️ " + i18n.T("Leave_fields_empty_for_all"))
-	hint.Alignment = fyne.TextAlignCenter
 
 	filterBtn := widget.NewButton("🔍 "+i18n.T("Filter"), func() {
 		list, err := appInstance.DB.GetFilteredPasswords(service.Text, username.Text, category.Text)
@@ -528,11 +544,11 @@ func ShowFilterWindow(a fyne.App, appInstance *app.App) {
 		}
 
 		statusLabel := widget.NewLabel("")
-		cryptoSvc := appInstance.Crypto
-		_, tableContainer := buildPasswordTable(&list, statusLabel, w, cryptoSvc)
+		// используем единый CryptoService и DB
+		_, content := buildPasswordTable(&list, statusLabel, w, appInstance.Crypto, appInstance.DB)
 
 		resultBox.Objects = []fyne.CanvasObject{
-			tableContainer,
+			content,
 			statusLabel,
 		}
 		resultBox.Refresh()
@@ -543,7 +559,6 @@ func ShowFilterWindow(a fyne.App, appInstance *app.App) {
 		widget.NewLabelWithStyle("🔍 "+i18n.T("Filter_Passwords"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 		widget.NewSeparator(),
 		form,
-		hint,
 		widget.NewSeparator(),
 		filterBtn,
 		resultBox,

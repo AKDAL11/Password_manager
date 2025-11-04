@@ -1,61 +1,36 @@
-// pkg/utils/crypto_service.go
 package utils
 
 import (
-    "crypto/aes"
-    "crypto/cipher"
-    "crypto/rand"
-    "encoding/base64"
-    "errors"
-    "io"
+	"encoding/base64"
+	"strings"
+
+	"password-manager/pkg/security"
 )
 
 type CryptoService struct {
-    Key []byte
+    key []byte
 }
 
 func NewCryptoService(key []byte) *CryptoService {
-    return &CryptoService{Key: key}
+    return &CryptoService{key: key}
 }
 
-func (cs *CryptoService) Encrypt(plainText string) (string, error) {
-    block, err := aes.NewCipher(cs.Key)
+func (c *CryptoService) Encrypt(plain string) (string, error) {
+    enc, err := security.EncryptAESGCM(c.key, []byte(plain))
     if err != nil {
         return "", err
     }
-    gcm, err := cipher.NewGCM(block)
-    if err != nil {
-        return "", err
-    }
-    nonce := make([]byte, gcm.NonceSize())
-    if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-        return "", err
-    }
-    cipherText := gcm.Seal(nonce, nonce, []byte(plainText), nil)
-    return base64.StdEncoding.EncodeToString(cipherText), nil
+    return base64.StdEncoding.EncodeToString(enc), nil
 }
 
-func (cs *CryptoService) Decrypt(encryptedText string) (string, error) {
-    cipherData, err := base64.StdEncoding.DecodeString(encryptedText)
+func (c *CryptoService) Decrypt(encB64 string) (string, error) {
+    data, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encB64))
     if err != nil {
         return "", err
     }
-    block, err := aes.NewCipher(cs.Key)
+    pt, err := security.DecryptAESGCM(c.key, data)
     if err != nil {
         return "", err
     }
-    gcm, err := cipher.NewGCM(block)
-    if err != nil {
-        return "", err
-    }
-    if len(cipherData) < gcm.NonceSize() {
-        return "", errors.New("ciphertext too short")
-    }
-    nonce := cipherData[:gcm.NonceSize()]
-    cipherText := cipherData[gcm.NonceSize():]
-    plainText, err := gcm.Open(nil, nonce, cipherText, nil)
-    if err != nil {
-        return "", err
-    }
-    return string(plainText), nil
+    return string(pt), nil
 }

@@ -1,4 +1,3 @@
-// pkg/appandroid/init.go
 package appandroid
 
 import (
@@ -7,19 +6,12 @@ import (
     "fyne.io/fyne/v2"
     pmapp "password-manager/internal/app"
     "password-manager/internal/app/db"
-    "password-manager/pkg/utils"
 )
 
 func InitApp(a fyne.App) *pmapp.App {
-    key, err := utils.LoadEncryptionKey(a)
-    if err != nil {
-        log.Println("Encryption key error:", err)
-        return nil
-    }
-    crypto := utils.NewCryptoService(key)
-
     dbPath := a.Storage().RootURI().Path() + "/passwords.db"
-    storage, err := db.InitDB(dbPath, crypto)
+
+    storage, err := db.InitDB(dbPath, nil)
     if err != nil {
         log.Println("DB init error:", err)
         return nil
@@ -27,6 +19,6 @@ func InitApp(a fyne.App) *pmapp.App {
 
     return &pmapp.App{
         DB:     storage,
-        Crypto: crypto,
+        Crypto: nil,
     }
 }

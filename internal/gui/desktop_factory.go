@@ -9,7 +9,7 @@ import (
 
 type DesktopFactory struct{}
 
-func (DesktopFactory) WindowSize() fyne.Size        { return fyne.NewSize(1225, 700) }
+func (DesktopFactory) WindowSize() fyne.Size        { return fyne.NewSize(1100, 700) }
 func (DesktopFactory) SmallWindowSize() fyne.Size   { return fyne.NewSize(640, 420) }
 func (DesktopFactory) SidebarRatio() float64        { return 0.25 }
 func (DesktopFactory) SidebarWidth() float32        { return 300 }

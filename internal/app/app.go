@@ -15,75 +15,48 @@ type App struct {
     Logger echo.Logger
 }
 
-// Веб-инициализация (с Echo)
+// Веб-инициализация
 func InitApp(e *echo.Echo, dbPath string) *App {
-    key, err := utils.LoadEncryptionKey(nil)
-    if err != nil {
-        log.Fatal("Encryption key error:", err)
-    }
-    crypto := utils.NewCryptoService(key)
-
-    storage, err := db.InitDB(dbPath, crypto)
+    storage, err := db.InitDB(dbPath, nil)
     if err != nil {
         log.Fatal(err)
     }
-
-    return &App{
-        DB:     storage,
-        Crypto: crypto,
-        Logger: e.Logger,
-    }
+    return &App{DB: storage, Crypto: nil, Logger: e.Logger}
 }
 
-// Десктоп-инициализация (без Echo)
+// Десктоп-инициализация
 func InitDesktopApp(dbPath string) *App {
-    key, err := utils.LoadEncryptionKey(nil)
-    if err != nil {
-        log.Fatal("Encryption key error:", err)
-    }
-    crypto := utils.NewCryptoService(key)
-
-    storage, err := db.InitDB(dbPath, crypto)
+    storage, err := db.InitDB(dbPath, nil)
     if err != nil {
         log.Fatal(err)
     }
-
-    return &App{
-        DB:     storage,
-        Crypto: crypto,
-        Logger: nil,
-    }
+    return &App{DB: storage, Crypto: nil, Logger: nil}
 }
 
-// Проверка мастер‑пароля
-func (a *App) VerifyMasterPassword(input string) bool {
+// Установка Crypto после успешной проверки пароля
+func (a *App) SetCryptoFromKey(key []byte) {
+    a.Crypto = utils.NewCryptoService(key)
+    a.DB.SetCrypto(a.Crypto)
+}
+
+// Проверка наличия meta (соль+верификатор)
+func (a *App) HasMeta() bool {
     if a.DB == nil {
         return false
     }
-    return a.DB.VerifyMasterPassword(input) == nil
+    return a.DB.HasMeta()
 }
 
-// Проверка: есть ли мастер‑пароль
-func (a *App) HasMasterPassword() bool {
-    if a.DB == nil {
-        return false
+// Инициализация/проверка мастер-пароля
+func (a *App) InitializeMasterWithPassword(password string) error {
+    sqlStore, ok := a.DB.(*db.SQLStorage)
+    if !ok {
+        return errors.New("invalid storage")
     }
-    return a.DB.HasMasterPassword()
-}
-
-// Установка нового мастер‑пароля
-func (a *App) SetMasterPassword(email, password string) error {
-    if a.DB == nil {
-        return errors.New("DB not initialized")
+    key, err := db.LoadOrInitMasterFromDB(sqlStore.DB, password)
+    if err != nil {
+        return err
     }
-
-    return a.DB.SaveMasterPassword(email, password)
-}
-
-// Получение email для восстановления (по желанию)
-func (a *App) GetRecoveryEmail() (string, error) {
-    if a.DB == nil {
-        return "", errors.New("DB not initialized")
-    }
-    return a.DB.GetRecoveryEmail()
+    a.SetCryptoFromKey(key)
+    return nil
 }

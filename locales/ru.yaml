@@ -10,7 +10,6 @@ Success: { other: "Успех" }
 Master_password_saved: { other: "Мастер-пароль сохранён" }
 passwords_do_not_match: { other: "Пароли не совпадают" }
 email_and_password_required: { other: "Требуются email и пароль" }
-First-time_setup: { other: "Первичная настройка" }
 
 Session_locked: { other: "Сессия заблокирована из-за бездействия" }
 Master_Password: { other: "Мастер-пароль" }
@@ -41,7 +40,6 @@ Delete: { other: "Удалить" }
 Your_Passwords: { other: "Ваши пароли" }
 
 Create_Password: { other: "Создать пароль" }
-Password: { other: "Пароль" }
 Length: { other: "Длина" }
 Exclude: { other: "Исключить" }
 Exclude_chars: { other: "Исключить символы" }
@@ -68,3 +66,16 @@ Delete_Password: { other: "Удалить пароль" }
 Enter_ID_to_delete: { other: "Введите ID для удаления" }
 Deleted: { other: "Удалено" }
 Password_deleted: { other: "Пароль успешно удалён" }
+
+Remember_master_password_hint: { other: "Запомните мастер‑пароль — восстановить его в случае утери невозможно." }
+First-time_setup: { other: "Первоначальная настройка" }
+Email: { other: "Электронная почта" }
+Password: { other: "Пароль" }
+Confirm: { other: "Подтверждение" }
+Language: { other: "Язык" }
+Enter_master_password_to_continue: { other: "Введите мастер‑пароль для продолжения" }
+Welcome_to_Manager: { other: "Добро пожаловать в менеджер паролей" }
+Any: { other: "Любой" }
+No_results_yet: { other: "Пока нет результатов" }
+Leave_fields_empty_for_all: { other: "Оставьте поля пустыми, чтобы показать все" }
+No_matching_entries: { other: "Нет совпадающих записей" }
